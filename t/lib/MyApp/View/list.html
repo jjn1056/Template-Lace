@@ -1,0 +1,30 @@
+<lace-master id='mainwrapper'
+    title=\'title:content'
+    css=\'@link'
+    body=\'body:content'>
+  <html>
+    <head>
+      <title>Things To Do</title>
+      <link href="/static/summary.css" rel="stylesheet"/>
+      <link href="/static/core.css" rel="stylesheet"/>
+    </head>
+    <body>
+      <form id="newtodo">
+        <lace-input id="item"
+            label="Todo"
+            name="item"
+            type="text"
+            value="$.form.fif.item"
+            errors="$.form.errors.item" />
+      </form>
+      <ol id='todos'>
+        <li>What To Do?</li>
+      </ol>
+      <lace-footer id='footer'
+          copydate='$.copywrite' />
+    </body>
+  </html>
+</lace-master>
+
+
+
