@@ -3,8 +3,6 @@ package Catalyst::View::Template::Lace;
 our $VERSION = '0.001';
 
 use Moo;
-use Scalar::Util ();
-use Template::Lace::DOM;
 use overload
   bool => sub {1},
   '""' => sub { shift->get_processed_dom->to_string },
@@ -14,35 +12,45 @@ extends 'Catalyst::View';
 
 sub COMPONENT {
   my ($class, $app, $args) = @_;
-  return $class->create_factory(
-    $class->create_dom($class->template),
-    $class->merge_config_hashes($class->config, $args)
-  );
+  my $merged = $class->merge_config_hashes($class->config, $args);
+  return $class->create_factory($merged);
 }
 
-sub create_dom { Template::Lace::DOM->new(pop) }
+sub dom_class { 'Template::Lace::DOM' }
+
+sub create_dom {
+  my $dom_class = shift->dom_class;
+  eval "use $dom_class; 1" || die "Can't load '$dom_class', $!";
+  $dom_class->new(@_);
+}
+
+sub template { }
 
 sub create_factory {
-  my ($class, $dom, $merged_args) = @_;
+  my ($class, $merged_args) = @_;
+  my $dom = $class->create_dom($class->template);
   return bless +{
+    class => $class,
     dom => $dom,
     init_args => $merged_args,
   }, $class;
 }
 
-sub template { die 'Subclass needs to complete this!' }
+sub create {
+  my ($factory, @extra_args) = @_;
+  return $factory->{class}->new(
+    %{$factory->{init_args}},
+    @extra_args,
+    dom => $factory->{dom}->clone,
+  );
+}
 
 has dom => (is=>'ro', required=>1);
 has ctx => (is=>'ro', required=>1);
 
 sub ACCEPT_CONTEXT {
   my ($factory, $c, @args) = @_;
-  return ref($factory)->new(
-    %{$factory->{init_args}}, # Merge in from ->config
-    @args,
-    dom => $factory->{dom}->clone,
-    ctx => $c,
-  );
+  return $factory->create(@args, ctx=>$c);
 }
 
 sub process_dom { pop }
@@ -65,8 +73,7 @@ sub respond {
 }
 
 sub render {
-  return shift
-    ->get_processed_dom
+  return shift->get_processed_dom
     ->to_string;
 }
 
@@ -88,9 +95,7 @@ sub overlay_view {
     });
   } else {
     $dom_proto->overlay(sub {
-      my $dom = shift;
-      return $self
-        ->view($view_name, @args, content=>$dom)
+      return $self->view($view_name, @args, content=>$_)
         ->get_processed_dom;
     });
   }

@@ -121,8 +121,8 @@ sub tag_helper_by_id {
 
 sub list_helper_by_id {
   my ($self, $tag, $id, $proto) = @_;
-  my $id = ref($proto) eq 'ARRAY' ? "$tag$id li" : "$tag$id";
-  return $self->unique_tag_helper($id, $proto);
+  my $target = ref($proto) eq 'ARRAY' ? "$tag$id li" : "$tag$id";
+  return $self->unique_tag_helper($target, $proto);
 }
 
 sub form { shift->tag_helper_by_id('form', @_) }

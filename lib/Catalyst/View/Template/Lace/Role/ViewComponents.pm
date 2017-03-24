@@ -64,14 +64,14 @@ sub process_components {
     $self->overlay_view(
       $self->components->{$id}{view},
       $dom->at("#$id"),
-      %attrs, view=>$self);
+      %attrs, container=>$self);
   }
 }
 
 around 'create_factory', sub {
-  my ($orig, $class, $dom, $args) = @_;
-  my $factory = $class->$orig($dom, $args);
-  my %components = $class->find_components($dom);
+  my ($orig, $class, $args) = @_;
+  my $factory = $class->$orig($args);
+  my %components = $class->find_components($factory->{dom});
   $factory->{components} = \%components;
   return $factory;
 };

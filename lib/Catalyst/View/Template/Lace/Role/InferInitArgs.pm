@@ -3,8 +3,8 @@ package Catalyst::View::Template::Lace::Role::InferInitArgs;
 use Moo::Role;
 
 around 'create_factory', sub {
-  my ($orig, $class, $dom, $args) = @_;
-  my $factory = $class->$orig($dom, $args);
+  my ($orig, $class, $args) = @_;
+  my $factory = $class->$orig($args);
   my @fields = $class->find_fields;
   $factory->{fields} = \@fields;
   return $factory;

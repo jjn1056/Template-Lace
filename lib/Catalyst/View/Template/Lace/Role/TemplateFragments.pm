@@ -14,9 +14,9 @@ sub extract_fragments {
 }
 
 around 'create_factory', sub {
-  my ($orig, $class, $dom, $args) = @_;
-  my $factory = $class->$orig($dom, $args);
-  my %fragments = $class->extract_fragments($dom);
+  my ($orig, $class, $args) = @_;
+  my $factory = $class->$orig($args);
+  my %fragments = $class->extract_fragments($factory->{dom});
   $factory->{fragments} = \%fragments;
   return $factory;
 };

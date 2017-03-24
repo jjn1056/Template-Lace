@@ -4,10 +4,10 @@ use Moo::Role;
 use HTTP::Status ();
 
 around 'create_factory', sub {
-  my ($orig, $class, $dom, $args) = @_;
+  my ($orig, $class, $args) = @_;
   my $returns_status = delete($args->{returns_status});
   $class->inject_http_status_helpers(@{$returns_status||[]});
-  return $class->$orig($dom, $args);
+  return $class->$orig($args);
 };
 
 sub inject_http_status_helpers {
