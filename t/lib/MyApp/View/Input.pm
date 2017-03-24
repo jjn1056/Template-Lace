@@ -8,19 +8,19 @@ has [qw/id label name type value errors/] => (is=>'ro');
 sub process_dom {
   my ($self, $dom) = @_;
 
-    # Set Label
+    # Set Label content
     $dom->at('label')
       ->content($self->label)
       ->attr(for=>$self->name);
 
-    # Set Input
+    # Set Input attributes
     $dom->at('input')->attr(
       type=>$self->type,
       value=>$self->value,
       id=>$self->id,
       name=>$self->name);
 
-    # Set Errors
+    # Set Errors or remove error block
     if($self->errors) {
       $dom->ol('#errors', $self->errors);
     } else {
@@ -37,7 +37,7 @@ sub template {
     </div>
     <div class="ui error message">
       <ol id='errors'>
-        <li class='error_message'>ERROR</li>
+        <li>ERROR</li>
       </ol>
     </div>
   ];

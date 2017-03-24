@@ -57,15 +57,14 @@ sub process_components {
   my ($self, $dom) = @_;
   foreach my $id(keys %{$self->components}) {
     my %attrs = map {
-      my $key = $_;
-      my $proto = $self->components->{$id}{attrs}{$key};
+      my $proto = $self->components->{$id}{attrs}{$_};
       my $value = ref($proto) ? $proto->($self, $dom) : $proto;
-      $key => $value;
+      $_ => $value;
     } keys %{$self->components->{$id}{attrs}};
     $self->overlay_view(
       $self->components->{$id}{view},
       $dom->at("#$id"),
-      %attrs);
+      %attrs, view=>$self);
   }
 }
 
