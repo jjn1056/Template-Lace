@@ -12,28 +12,43 @@ extends 'Catalyst::View';
 
 sub COMPONENT {
   my ($class, $app, $args) = @_;
-  my $merged = $class->merge_config_hashes($class->config, $args);
-  return $class->create_factory($merged);
+  my $merged_args = $class->merge_config_hashes($class->config, $args);
+  return $class->create_factory($merged_args);
 }
-
-sub dom_class { 'Template::Lace::DOM' }
-
-sub create_dom {
-  my $dom_class = shift->dom_class;
-  eval "use $dom_class; 1" || die "Can't load '$dom_class', $!";
-  $dom_class->new(@_);
-}
-
-sub template { }
 
 sub create_factory {
   my ($class, $merged_args) = @_;
-  my $dom = $class->create_dom($class->template);
+  my $dom = $class->create_dom($merged_args);
   return bless +{
     class => $class,
     dom => $dom,
     init_args => $merged_args,
   }, $class;
+}
+
+sub create_dom {
+  my ($class, $merged_args) = @_;
+  my $template = $class->template($merged_args);
+  my $dom_class = _ensure_loaded($class->dom_class($merged_args));
+  return $dom_class->new($template);
+}
+
+sub template { }
+
+sub _ensure_loaded {
+  eval "use $_[0]; 1" ||
+    die "Can't load '$_[0]', $@";
+  return $_[0];
+}
+
+sub dom_class { 'Template::Lace::DOM' }
+
+has dom => (is=>'ro', required=>1);
+has ctx => (is=>'ro', required=>1);
+
+sub ACCEPT_CONTEXT {
+  my ($factory, $c, @args) = @_;
+  return $factory->create(@args, ctx=>$c);
 }
 
 sub create {
@@ -44,22 +59,6 @@ sub create {
     dom => $factory->{dom}->clone,
   );
 }
-
-has dom => (is=>'ro', required=>1);
-has ctx => (is=>'ro', required=>1);
-
-sub ACCEPT_CONTEXT {
-  my ($factory, $c, @args) = @_;
-  return $factory->create(@args, ctx=>$c);
-}
-
-sub process_dom { pop }
-
-sub get_processed_dom {
-  my $self = shift;
-  $self->process_dom($self->dom);
-  return $self->dom;
-} 
 
 sub respond {
   my ($self, $status, $headers) = @_;
@@ -76,6 +75,14 @@ sub render {
   return shift->get_processed_dom
     ->to_string;
 }
+
+sub get_processed_dom {
+  my $self = shift;
+  $self->process_dom($self->dom);
+  return $self->dom;
+} 
+
+sub process_dom { pop }
 
 # Support old school Catalyst::Action::RenderView for example (
 # you probably also want the ::ArgsFromStash role).
