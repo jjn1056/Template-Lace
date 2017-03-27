@@ -8,3 +8,8 @@
 -- Not sure if needed but explore the notion of component
    generated events that other components can subscribe
    too.
+-- Use case, a view has a component that is passed params
+   but some params are 'setup/application'.  For example
+   a component injects a formhandler model, based on passed
+   parameters.  Maybe what we need is a component that does 
+   nothing by inject others?
