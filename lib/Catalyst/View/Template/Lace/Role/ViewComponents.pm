@@ -28,7 +28,7 @@ sub get_component_prefixes {
   return @{$args->{component_prefixes}||[$factory->default_component_prefixes]};
 }
 
-sub default_component_prefixes { 'lace' }
+sub default_component_prefixes { 'view' }
 
 sub find_components {
   my ($class, $dom, $prefix, %components) = @_;
