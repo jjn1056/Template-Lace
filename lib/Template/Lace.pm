@@ -14,7 +14,7 @@ extends 'Catalyst::View';
 
 sub create_factory {
   my $class = shift;
-  my $merged_args = ref($_[0]) eq 'HASH' ? $_[0] : +{ @_ };
+  my $merged_args = ref($_[0]) eq 'HASH' ? $_[0] : +{ @_ }; # Allow init args as list or ref
   my $dom = $class->create_dom($merged_args);
   my %components = $class->find_components_by_prefixes($dom, $merged_args);
   return bless +{
@@ -50,8 +50,8 @@ sub find_components_by_prefixes {
 }
 
 sub get_component_prefixes {
-  my ($class, $args) = @_;
-  return @{$args->{component_prefixes}||[$class->default_component_prefixes]};
+  my ($class, $merged_args) = @_;
+  return @{$merged_args->{component_prefixes}||[$class->default_component_prefixes]};
 }
 
 sub default_component_prefixes { 'lace' }
@@ -142,14 +142,19 @@ has component_handlers => (is=>'ro', required=>1);
 
 sub create {
   my $factory = shift;
-  my @extra_args = ref($_[0]) ? @{$_[0]} : @_;
-  my %merged_args = (%{$factory->{init_args}}, @extra_args);
   return $factory->{class}->new(
-    %merged_args,
+    $factory->prepare_args(@_),
     dom => $factory->prepare_dom,
     components => $factory->prepare_components,
     component_handlers => $factory->prepare_component_handlers,
   );
+}
+
+sub prepare_args {
+  my $factory = shift;
+  my @extra_args = ref($_[0]) ? @{$_[0]} : @_; # Allow init args as list or ref
+  my %merged_args = (%{$factory->{init_args}}, @extra_args);
+  return %merged_args;
 }
 
 sub prepare_dom { shift->{dom}->clone }
