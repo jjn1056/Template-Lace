@@ -31,21 +31,22 @@ sub get_component_prefixes {
 sub default_component_prefixes { 'view' }
 
 sub find_components {
-  my ($class, $dom, $prefix, %components) = @_;
+  my ($class, $dom, $prefix, $current_container_id, %components) = @_;
   $dom->child_nodes->each(sub {
       my ($child_dom, $num) = @_;
       if(my $component_name = (($child_dom->tag||'') =~m/^$prefix\-(.+)?/)[0]) {
-        $components{$child_dom->attr('id')} = +{ $class->setup_component_info($prefix, $component_name, $child_dom) };
+        $components{$child_dom->attr('id')} = +{ $class->setup_component_info($prefix, $current_container_id, $component_name, $child_dom) };
+        $current_container_id = $child_dom->attr('id');
       }
       # Here we should be able to identify the 'containing' component if any
       # maybe need to descend via the found components above.
-      %components = $class->find_components($child_dom, $prefix, %components);
+      %components = $class->find_components($child_dom, $prefix, $current_container_id, %components);
   });
   return %components;
 }
 
 sub setup_component_info {
-  my ($class, $prefix, $name, $dom) = @_;
+  my ($class, $prefix, $current_container_id, $name, $dom) = @_;
   my %attrs = $class->setup_component_attr($dom);
 
   # TODO split out into stand alone component
@@ -53,6 +54,7 @@ sub setup_component_info {
   return view => $view, 
     name => $name,
     prefix => $prefix,
+    current_container_id => $current_container_id,
     attrs => \%attrs;
 }
 
