@@ -17,4 +17,12 @@ sub process_dom {
 __PACKAGE__->config(
   returns_status => [200,400],
   prettify => 1,
+  component_handlers => +{
+    lace => +{
+      timestamp => sub {
+        my ($self, $dom, $info, %attrs) = @_;
+        $dom->append("<div>${\do { scalar localtime }}</div>");
+      },
+    },
+  },
 );
