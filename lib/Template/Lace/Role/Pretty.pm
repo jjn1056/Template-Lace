@@ -1,4 +1,4 @@
-package Catalyst::View::Template::Lace::Role::Pretty;
+package Template::Lace::Role::Pretty;
 
 use Moo::Role;
 use HTML::Tidy;

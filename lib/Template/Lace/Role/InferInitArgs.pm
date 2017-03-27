@@ -1,4 +1,4 @@
-package Catalyst::View::Template::Lace::Role::InferInitArgs;
+package Template::Lace::Role::InferInitArgs;
 
 use Moo::Role;
 

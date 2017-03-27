@@ -2,13 +2,13 @@ package  MyApp::View::Summary;
 
 use Moo;
 extends 'Catalyst::View::Template::Lace';
-with 'Catalyst::View::Template::Lace::Role::Pretty',
+with 'Template::Lace::Role::Pretty',
+  'Template::Lace::Role::TemplateFragments',
+  'Template::Lace::Role::AutoTemplate',
   'Catalyst::View::Template::Lace::Role::ArgsFromStash',
   'Catalyst::View::Template::Lace::Role::ResponseHelpers',
   'Catalyst::View::Template::Lace::Role::PerContext',
-  'Catalyst::View::Template::Lace::Role::URI',
-  'Catalyst::View::Template::Lace::Role::AutoTemplate',
-  'Catalyst::View::Template::Lace::Role::TemplateFragments';
+  'Catalyst::View::Template::Lace::Role::URI';
 
 has [qw/title names copydate/] => (is=>'ro', required=>1);
 

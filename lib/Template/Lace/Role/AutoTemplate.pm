@@ -1,15 +1,18 @@
-package Catalyst::View::Template::Lace::Role::AutoTemplate;
+package Template::Lace::Role::AutoTemplate;
 
 use Moo::Role;
-use Catalyst::Utils ();
 use File::Spec;
 
 sub get_path_to_template {
   my ($class) = @_;
   my @parts = split("::", $class);
   my $filename = lc(pop @parts);
-  my $home = $class->get_home_path;
-  return File::Spec->catfile($home, 'lib', @parts, $filename.'.html');
+  my $path = "$class.pm";
+  $path =~s/::/\//g;
+  my $inc = $INC{$path};
+  my $base = $inc;
+  $base =~s/$path$//g;
+  return my $template_path = File::Spec->catfile($base, @parts, $filename.'.html');
 }
 
 sub get_home_path {

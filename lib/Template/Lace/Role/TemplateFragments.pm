@@ -1,4 +1,4 @@
-package Catalyst::View::Template::Lace::Role::TemplateFragments;
+package Template::Lace::Role::TemplateFragments;
 
 use Moo::Role;
 

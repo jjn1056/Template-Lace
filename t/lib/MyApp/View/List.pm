@@ -2,9 +2,9 @@ package  MyApp::View::List;
 
 use Moo;
 extends 'Catalyst::View::Template::Lace';
-with 'Catalyst::View::Template::Lace::Role::Pretty',
+with 'Template::Lace::Role::Pretty',
+  'Template::Lace::Role::AutoTemplate',
   'Catalyst::View::Template::Lace::Role::ResponseHelpers',
-  'Catalyst::View::Template::Lace::Role::AutoTemplate',
   'Catalyst::View::Template::Lace::Role::ViewComponents';
 
 has [qw/form items copywrite/] => (is=>'ro', required=>1);

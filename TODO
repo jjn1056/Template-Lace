@@ -1,15 +1,4 @@
--- the idea of components probably needs to be
-   core again.  and new attributes 'view' (view that
-   created the component or undef) and 'container'
-   which is the component that 'contains' a component.
-   'children' should be the opposite, the components
-   that a container is holding.  This should be enough
-   to allow some level of 'smarts' between components.
--- Not sure if needed but explore the notion of component
-   generated events that other components can subscribe
-   too.
--- Use case, a view has a component that is passed params
-   but some params are 'setup/application'.  For example
-   a component injects a formhandler model, based on passed
-   parameters.  Maybe what we need is a component that does 
-   nothing by inject others?
+-- Not in love with multiple inheritance design...
+-- And not in love with the one class to rule them all either.
+-- should components be able to get info from each other?
+-- Catalyst 'subrequest' handler example

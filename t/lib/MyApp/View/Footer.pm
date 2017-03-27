@@ -2,8 +2,7 @@ package  MyApp::View::Footer;
 
 use Moo;
 extends 'Catalyst::View::Template::Lace';
-with 'Catalyst::View::Template::Lace::Role::InferInitArgs';
-
+with 'Template::Lace::Role::InferInitArgs';
 
 has copydate => (is=>'ro', required=>1);
 
