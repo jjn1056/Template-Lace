@@ -2,3 +2,4 @@
 -- And not in love with the one class to rule them all either.
 -- should components be able to get info from each other?
 -- Catalyst 'subrequest' handler example
+-- Need to go through this again an mark methods as 'non public'

@@ -12,12 +12,6 @@ use overload
 
 extends 'Catalyst::View';
 
-sub COMPONENT {
-  my ($class, $app, $args) = @_;
-  my $merged_args = $class->merge_config_hashes($class->config, $args);
-  return $class->create_factory($merged_args);
-}
-
 sub create_factory {
   my $class = shift;
   my $merged_args = ref($_[0]) eq 'HASH' ? $_[0] : +{ @_ };
