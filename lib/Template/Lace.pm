@@ -10,8 +10,6 @@ use overload
   '""' => sub { shift->get_processed_dom->to_string },
   fallback => 1;
 
-extends 'Catalyst::View';
-
 sub create_factory {
   my $class = shift;
   my $merged_args = ref($_[0]) eq 'HASH' ? $_[0] : +{ @_ }; # Allow init args as list or ref
