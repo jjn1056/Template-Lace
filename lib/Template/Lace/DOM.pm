@@ -131,3 +131,29 @@ sub ol { shift->list_helper_by_id('ol', @_) }
 sub dl { shift->tag_helper_by_id('dl', @_) }
 
 1;
+
+=head1 NAME
+
+Template::Lace::DOM - DOM searching and tranformation engine
+
+=head1 SYNOPSIS
+
+    TBD
+
+=head1 DESCRIPTION
+
+    TBD
+
+=head1 SEE ALSO
+ 
+L<Template::Pure>.
+
+=head1 AUTHOR
+
+Please See L<Template::Lace> for authorship and contributor information.
+  
+=head1 COPYRIGHT & LICENSE
+ 
+Please see L<Template::Lace> for copyright and license information.
+
+=cut 

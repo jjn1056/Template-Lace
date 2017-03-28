@@ -25,3 +25,29 @@ sub inject_http_status_helpers {
 }
 
 1;
+
+=head1 NAME
+
+Catalyst::View::Template::Lace::Role::ResponseHelpers - Easier Responses
+
+=head1 SYNOPSIS
+
+    TBD
+
+=head1 DESCRIPTION
+
+    TBD
+
+=head1 SEE ALSO
+ 
+L<Catalyst::View::Template::Lace>.
+
+=head1 AUTHOR
+
+Please See L<Catalyst::View::Template::Lace> for authorship and contributor information.
+  
+=head1 COPYRIGHT & LICENSE
+ 
+Please see L<Catalyst::View::Template::Lace> for copyright and license information.
+
+=cut

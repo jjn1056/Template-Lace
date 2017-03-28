@@ -64,3 +64,32 @@ sub detach { shift->ctx->detach(@_) }
 sub view { shift->ctx->view(@_) }
 
 1;
+
+=head1 NAME
+
+Catalyst::View::Template::Lace - Adapt Template::Lace for Catalyst
+
+=head1 SYNOPSIS
+
+    TBD
+
+=head1 DESCRIPTION
+
+    TBD
+
+=head1 AUTHOR
+ 
+John Napiorkowski L<email:jjnapiork@cpan.org>
+  
+=head1 SEE ALSO
+ 
+L<Template::Lace>, L<Catalyst::View::Template::Pure>
+
+=head1 COPYRIGHT & LICENSE
+ 
+Copyright 2017, John Napiorkowski L<email:jjnapiork@cpan.org>
+ 
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+
+=cut

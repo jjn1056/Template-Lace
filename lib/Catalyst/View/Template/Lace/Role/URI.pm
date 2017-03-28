@@ -21,4 +21,31 @@ sub uri {
   die "Could not create a URI from '$action_proto' with the given arguments" unless $action;
   return $self->ctx->uri_for($action, @args);
 }
+
 1;
+
+=head1 NAME
+
+Catalyst::View::Template::Lace::Role::URI - Shortcut to create a URI on the current controller
+
+=head1 SYNOPSIS
+
+    TBD
+
+=head1 DESCRIPTION
+
+    TBD
+
+=head1 SEE ALSO
+ 
+L<Catalyst::View::Template::Lace>.
+
+=head1 AUTHOR
+
+Please See L<Catalyst::View::Template::Lace> for authorship and contributor information.
+  
+=head1 COPYRIGHT & LICENSE
+ 
+Please see L<Catalyst::View::Template::Lace> for copyright and license information.
+
+=cut

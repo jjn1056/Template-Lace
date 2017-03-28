@@ -36,3 +36,29 @@ sub get_fragment {
 }
 
 1;
+
+=head1 NAME
+
+Template::Lace::Role::Fragments - Embed 'Islands' of HTML for reuse in your templates
+
+=head1 SYNOPSIS
+
+    TBD
+
+=head1 DESCRIPTION
+
+    TBD
+
+=head1 SEE ALSO
+ 
+L<Template::Pure>.
+
+=head1 AUTHOR
+
+Please See L<Template::Lace> for authorship and contributor information.
+  
+=head1 COPYRIGHT & LICENSE
+ 
+Please see L<Template::Lace> for copyright and license information.
+
+=cut 

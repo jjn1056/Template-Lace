@@ -57,3 +57,29 @@ sub process_context_args {
 }
 
 1;
+
+=head1 NAME
+
+Template::Lace::Role::InferInitArgs - fill init args by inspecting an object
+
+=head1 SYNOPSIS
+
+    TBD
+
+=head1 DESCRIPTION
+
+    TBD
+
+=head1 SEE ALSO
+ 
+L<Template::Pure>.
+
+=head1 AUTHOR
+
+Please See L<Template::Lace> for authorship and contributor information.
+  
+=head1 COPYRIGHT & LICENSE
+ 
+Please see L<Template::Lace> for copyright and license information.
+
+=cut 

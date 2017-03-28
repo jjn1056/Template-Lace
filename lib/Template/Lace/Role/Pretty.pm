@@ -41,3 +41,29 @@ around 'render', sub {
 };
 
 1;
+
+=head1 NAME
+
+Template::Lace::Role::Pretty - Pretty print filter your HTML output
+
+=head1 SYNOPSIS
+
+    TBD
+
+=head1 DESCRIPTION
+
+    TBD
+
+=head1 SEE ALSO
+ 
+L<Template::Pure>.
+
+=head1 AUTHOR
+
+Please See L<Template::Lace> for authorship and contributor information.
+  
+=head1 COPYRIGHT & LICENSE
+ 
+Please see L<Template::Lace> for copyright and license information.
+
+=cut 
