@@ -3,3 +3,10 @@
 -- should components be able to get info from each other?
 -- Catalyst 'subrequest' handler example
 -- Need to go through this again an mark methods as 'non public'
+
+-- What about the idea of allowing component callbacks on attributes
+    and not just tags?:
+    eg: <a helper-href="['user',$.c.args,{page:'1'}]">
+   Would maybe use JSONY or similar to create the attributes?
+
+
