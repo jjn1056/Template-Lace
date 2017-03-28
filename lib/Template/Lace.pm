@@ -3,6 +3,7 @@ package Template::Lace;
 our $VERSION = '0.001';
 
 use Moo;
+use UUID::Tiny;
 use Module::Runtime;
 use Scalar::Util;
 use overload
@@ -49,7 +50,8 @@ sub find_components_by_prefixes {
 
 sub get_component_prefixes {
   my ($class, $merged_args) = @_;
-  return @{$merged_args->{component_prefixes}||[$class->default_component_prefixes]};
+  my @local_prefixes = (keys %{ $merged_args->{component_handlers}||+{} });  
+  return @{$merged_args->{component_prefixes}||[$class->default_component_prefixes]}, @local_prefixes;
 }
 
 sub default_component_prefixes { 'lace' }
@@ -59,20 +61,31 @@ sub setup_components {
   $dom->child_nodes->each(sub {
       my ($child_dom, $num) = @_;
       if(my $component_name = (($child_dom->tag||'') =~m/^$prefix\-(.+)?/)[0]) {
-        die "A component MUST set an unique 'id' attribute" unless my $id = $child_dom->attr('id');
-        $components{$id} = +{
-          $class->setup_component_info($prefix,
-            $current_container_id,
-            $component_name,
-            $child_dom) };
-        $current_container_id = $id;
-      }
+        ## if uuid exists, that means we already processed it.
+        unless($child_dom->attr('uuid')) {
+          my $uuid = $class->generate_component_uuid($prefix);
+          $child_dom->attr({'uuid',$uuid});
+          $components{$uuid} = +{
+            $class->setup_component_info($prefix,
+              $current_container_id,
+              $component_name,
+              $child_dom) };
+          $current_container_id = $uuid;
+        }
+    }
       %components = $class->setup_components($child_dom,
         $prefix,
         $current_container_id,
         %components);
   });
   return %components;
+}
+
+sub generate_component_uuid {
+  my ($class, $prefix) = @_;
+  my $uuid = UUID::Tiny::create_uuid_as_string;
+  $uuid=~s/\-//g;
+  return $uuid;
 }
 
 sub setup_component_info {
@@ -180,7 +193,7 @@ sub process_components {
   my ($self, $dom) = @_;
   foreach my $id(keys %{$self->components}) {
     $self->process_component(
-      $dom->at("#$id"), 
+      $dom->at("[uuid='$id']"), 
       %{$self->components->{$id}});
   }
 }

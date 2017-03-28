@@ -47,6 +47,23 @@ Create a View that does this role:
     sub process_dom {
       my ($self, $dom) = @_;
       $dom->dl('#user', $self);
+
+      ## The following two options all do the same transformation
+      ## just maybe a bit more typing (you get a speedup since ->fill
+      ## does not need to inspect '$self' for its fields.
+
+      # $dom->dl('#user', +{
+      #   age=>$self->age,
+      #   name=>$self->name,
+      #   motto=>$self->motto
+      # });
+
+      # $dom->at('#user')
+      #   ->fill({
+      #     age=>$self->age,
+      #     name=>$self->name,
+      #     motto=>$self->motto,
+      #   });
     }
 
     1;
@@ -99,9 +116,17 @@ Produces result like:
 
 If you wish to create a view using arguments passed from the L<Catalyst> stash, you can
 do so with this role.  You may find this role helpful since its been common to use the
-stash to pass values to the view.  Although I prefer to avoid use of the stash, in this
-case at least the stash values are required to match the view type so there's less downside
-here than in other common views.
+stash to pass values to the view for a long time.  Although I prefer to avoid use of the
+stash, in this case at least the stash values are required to match the view type so 
+there's less downside here than in other common views.
+
+You might find this useful when you are trying to integrate L<Catalyst::View::Template::Lace>
+into an existing project that makes heavy use of the stash, or when you build up data for
+the view across actions in an action chain (although also see
+L<Catalyst::View::Template::Lace::Role::PerContext>).
+
+Also see L<Catalyst::View::Template::Lace/process> for more support for 'classic' style
+template use.
 
 =head1 SEE ALSO
  

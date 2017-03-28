@@ -3,7 +3,7 @@ package  MyApp::View::User;
 use Moo;
 extends 'Catalyst::View::Template::Lace';
 with 'Template::Lace::Role::Pretty',
-  'Catalyst::View::Template::Lace::Role::ArgsFromStash',
+  'Catalyst::View::Template::Lace::Role::ArgsFromStash';
 
 has [qw/age name motto/] => (is=>'ro', required=>1);
 
@@ -14,7 +14,7 @@ sub template {q[
     </head>
     <body>
       <dl id='user'>
-        <dt>Name</dt>
+        <dt><tag-anchor href="/profile/john">Name</tag-anchor></dt>
         <dd id='name'>NAME</dd>
         <dt>Age</dt>
         <dd id='age'>AGE</dd>
@@ -27,9 +27,20 @@ sub template {q[
 
 sub process_dom {
   my ($self, $dom) = @_;
-  $dom->dl('#user', $self);
+  $dom->dl('#user', $self); #maybe not the fastest option!
+
+  #$dom->dl('#user', +{
+  # age=>$self->age,
+  # name=>$self->name,
+  # motto=>$self->motto});
+
+  #$dom->at('#user')
+  # ->fill({
+  #   age=>$self->age,
+  #   name=>$self->name,
+  #   motto=>$self->motto});
+
 }
 
 __PACKAGE__->config(
-  prettify => 1,
-);
+  prettify => 1);

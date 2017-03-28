@@ -23,8 +23,11 @@ around 'prepare_component_handlers', sub {
   $handlers->{view} = sub {
     my ($self, $dom, $component_info, %attrs) = @_;
     $dom->overlay(sub {
-      return $self->view($component_info->{view}, %attrs, content=>$_)
+      $self->_profile(begin => "=> ViewComponent: $component_info->{view}");
+      my $component_dom =$self->view($component_info->{view}, %attrs, content=>$_)
         ->get_processed_dom;
+      $self->_profile(end => "=> ViewComponent: $component_info->{view}");
+      return $component_dom;
     });
   };
   return $handlers;

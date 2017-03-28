@@ -24,13 +24,21 @@ sub ACCEPT_CONTEXT {
 
 sub respond {
   my ($self, $status, $headers) = @_;
+  $self->_profile(begin => "=> ".Catalyst::Utils::class2classsuffix($self->catalyst_component_name)."->respond($status)");
   for ($self->ctx->res) {
     $_->status($status) if $_->status != 200; # Catalyst sets 200
     $_->content_type('text/html') if !$_->content_type;
     $_->headers->push_header(@{$headers}) if $headers;
     $_->body($self->render);
   }
+  $self->_profile(end => "=> ".Catalyst::Utils::class2classsuffix($self->catalyst_component_name)."->respond($status)");
   return $self;
+}
+
+sub _profile {
+  my $self = shift;
+  $self->ctx->stats->profile(@_)
+    if $self->ctx->debug;
 }
 
 # Support old school Catalyst::Action::RenderView for example (
@@ -63,7 +71,17 @@ sub detach { shift->ctx->detach(@_) }
 
 sub view { shift->ctx->view(@_) }
 
-1;
+__PACKAGE__->config(
+  component_handlers => +{
+    tag => +{
+      anchor => sub {
+        my ($self, $dom, $info, %attrs) = @_;
+        my $attr = join ' ', map { "$_='$attrs{$_}'"  } grep { $_ ne 'uuid' } keys %attrs;
+        $dom->wrap("<a $attr></a>");
+      },
+    },
+  },
+);
 
 =head1 NAME
 
