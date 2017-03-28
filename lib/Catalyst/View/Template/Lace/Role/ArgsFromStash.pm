@@ -16,11 +16,92 @@ Catalyst::View::Template::Lace::Role::ArgsFromStash - fill init args from the st
 
 =head1 SYNOPSIS
 
-    TBD
+Create a View that does this role:
+
+    package  MyApp::View::User;
+
+    use Moo;
+    extends 'Catalyst::View::Template::Lace';
+    with 'Catalyst::View::Template::Lace::Role::ArgsFromStash',
+
+    has [qw/age name motto/] => (is=>'ro', required=>1);
+
+    sub template {q[
+      <html>
+        <head>
+          <title>User Info</title>
+        </head>
+        <body>
+          <dl id='user'>
+            <dt>Name</dt>
+            <dd id='name'>NAME</dd>
+            <dt>Age</dt>
+            <dd id='age'>AGE</dd>
+            <dt>Motto</dt>
+            <dd id='motto'>MOTTO</dd>
+          </dl>
+        </body>
+      </html>
+    ]}
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      $dom->dl('#user', $self);
+    }
+
+    1;
+
+Call the View from a controller that sets stash values;
+
+    package MyApp::Controller::User;
+
+    use Moose;
+    use MooseX::MethodAttributes;
+    extends 'Catalyst::Controller';
+
+    sub display :Path('') {
+      my ($self, $c) = @_;
+      $c->stash(
+        name => 'John',
+        age => 42,
+        motto => 'Why Not?');
+      $c->view('User')
+        ->respond(200);
+    }
+
+    __PACKAGE__->meta->make_immutable;
+
+Produces result like:
+
+    <html>
+      <head>
+        <title>User Info</title>
+      </head>
+      <body>
+        <dl id="user">
+          <dt>Name</dt>
+          <dd id="name">
+            John
+          </dd>
+          <dt>Age</dt>
+          <dd id="age">
+            42
+          </dd>
+          <dt>Motto</dt>
+          <dd id="motto">
+            Why Not?
+          </dd>
+        </dl>
+      </body>
+    </html>
 
 =head1 DESCRIPTION
 
-    TBD
+If you wish to create a view using arguments passed from the L<Catalyst> stash, you can
+do so with this role.  You may find this role helpful since its been common to use the
+stash to pass values to the view.  Although I prefer to avoid use of the stash, in this
+case at least the stash values are required to match the view type so there's less downside
+here than in other common views.
 
 =head1 SEE ALSO
  

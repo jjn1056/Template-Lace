@@ -4,6 +4,7 @@ package Template::Lace::DOM;
 
 use base 'Mojo::DOM';
 use Storable ();
+use Scalar::Util;
 
 # General Helpers
 #
@@ -73,6 +74,18 @@ sub fill {
       $self->find(".$match")->each(sub {
           my ($dom, $count) = @_;
           $dom->fill($data->{$match}, $is_loop);
+      });
+    }
+  } elsif(Scalar::Util::blessed $data) {
+    my @fields = $data->meta->get_attribute_list;
+    foreach my $match (@fields) {
+      if(!$is_loop) {
+        my $dom = $self->at("#$match");
+        $dom->fill($data->$match, $is_loop) if $dom;
+      }
+      $self->find(".$match")->each(sub {
+          my ($dom, $count) = @_;
+          $dom->fill($data->$match, $is_loop);
       });
     }
   } else {
