@@ -27,7 +27,10 @@ sub template {q[
 
 sub process_dom {
   my ($self, $dom) = @_;
-  $dom->dl('#user', $self); #maybe not the fastest option!
+  $self->fill_at('#user');
+
+  # All these are the same result (might vary performance-wise)
+  #$dom->dl('#user', $self); #maybe not the fastest option!
 
   #$dom->dl('#user', +{
   # age=>$self->age,

@@ -63,6 +63,15 @@ sub overlay_view {
         ->get_processed_dom;
     });
   }
+  return $self;
+}
+
+sub fill_at {
+  my ($self, $id) = @_;
+  $self->dom
+    ->find($id)
+    ->each(sub { $_->fill($self) }); # nice shortcut but could be expensive
+  return $self;
 }
 
 # proxy methods 
