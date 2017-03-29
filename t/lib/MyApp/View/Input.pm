@@ -1,6 +1,8 @@
 package  MyApp::View::Input;
 
 use Moo;
+use Patterns::UndefObject::maybe;
+
 extends 'Catalyst::View::Template::Lace';
 
 has [qw/id label name type container view/] => (is=>'ro');
@@ -8,13 +10,13 @@ has [qw/id label name type container view/] => (is=>'ro');
 has value => (
   is=>'ro',
   lazy=>1,
-  default=>sub { $_[0]->container->fif ? $_[0]->container->fif->{$_[0]->name} : 0 },
+  default=>sub { $_[0]->container->maybe::fif->{$_[0]->name} },
 );
 
 has errors => (
   is=>'ro',
   lazy=>1,
-  default=>sub { $_[0]->container->errors ? $_[0]->container->errors->{$_[0]->name} : 0 },
+  default=>sub { $_[0]->container->maybe::errors->{$_[0]->name} },
 );
 
 sub process_dom {
