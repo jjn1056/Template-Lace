@@ -15,11 +15,6 @@ sub get_path_to_template {
   return my $template_path = File::Spec->catfile($base, @parts, $filename.'.html');
 }
 
-sub get_home_path {
-  return Catalyst::Utils::home(shift)
-    || die "Can't figure out the home directory!";
-}
-
 sub slurp_template_from {
   my ($class, $template_path) = @_;
   open(my $fh, '<', $template_path)
@@ -47,11 +42,54 @@ Template::Lace::Role::AutoTemplate - More easily find your template
 
 =head1 SYNOPSIS
 
-    TBD
+Create a template class at path $HOME/lib/MyApp/Template/List.pm
+
+    package  MyApp::Template::List;
+
+    use Moo;
+    extends 'Template::Lace';
+    with 'Template::Lace::Role::Pretty',
+
+    has 'items' => (is=>'ro', required=>1);
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      $dom->ol('#todos'=>$self->items);
+    }
+
+Also create an HTML file like this at $HOME/lib/MyApp/Template/list.html
+
+    <html>
+      <head>
+        <title>Things To Do</title>
+      </head>
+      <body>
+        <ol id='todos'>
+          <li>What To Do?</li>
+        </ol>
+      </body>
+    </html>
+
+When you create an factory of the template class, we automatically load the
+template from the file and make it available for running transformations.
 
 =head1 DESCRIPTION
 
-    TBD
+By default we look for a string returned from a method c<template> in your class
+to provide the source for your generated HTML.  This can be handy for small templates
+but often when a template is larger or when you have an HTML designer you prefer to
+have your templates in a stand alone file.  This role will first check if you are
+returning something from C<template> method and if not it will look for a file in the
+same directory as the template class with a name based on the class.  If it finds the
+file it with use that as your template.
+
+The convention for the filename of the HTML version of the template is to take the
+class file name, replace the '.pm' with '.html' and lowercase the name.  For example
+if you have a class 'MyApp::Templates::User', at '$HOME/lib/MyApp/Templates/User.pm'
+we'd expect to find a file template at '$HOME/lib/MyApp/Templates/user.html'.
+
+You can override the method 'get_path_to_template' if you prefer a different lookup
+convention (or even hardcode a particular path).
 
 =head1 SEE ALSO
  

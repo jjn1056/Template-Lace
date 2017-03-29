@@ -64,11 +64,60 @@ Template::Lace::Role::InferInitArgs - fill init args by inspecting an object
 
 =head1 SYNOPSIS
 
-    TBD
+Create a template class:
+
+   package  MyApp::View::User;
+
+    use Moo;
+    extends 'Catalyst::View::Template::Lace';
+    with 'Catalyst::View::Template::Lace::Role::ArgsFromStash',
+
+    has [qw/age name motto/] => (is=>'ro', required=>1);
+
+    sub template {q[
+      <html>
+        <head>
+          <title>User Info</title>
+        </head>
+        <body>
+          <dl id='user'>
+            <dt>Name</dt>
+            <dd id='name'>NAME</dd>
+            <dt>Age</dt>
+            <dd id='age'>AGE</dd>
+            <dt>Motto</dt>
+            <dd id='motto'>MOTTO</dd>
+          </dl>
+        </body>
+      </html>
+    ]}
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      $dom->dl('#user', +{
+        age=>$self->age,
+        name=>$self->name,
+        motto=>$self->motto
+      });
+    }
+
+    1;
+
+Create an object;
+
+
+Create and render an instance:
+
+    my $factory = MyApp::Template::List
+      ->create_factory;
+
+    my $html = $factory->create(items=>['Walk dogs', 'Buy Milk'])
+      ->render;
 
 =head1 DESCRIPTION
 
-    TBD
+Allows you to fill your template arguments from an object, possibily saving you some
+tedious typing (at the possible expense of understanding).
 
 =head1 SEE ALSO
  

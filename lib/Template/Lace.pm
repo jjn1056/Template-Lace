@@ -16,12 +16,26 @@ sub create_factory {
   my $merged_args = ref($_[0]) eq 'HASH' ? $_[0] : +{ @_ }; # Allow init args as list or ref
   my $dom = $class->create_dom($merged_args);
   my %components = $class->find_components_by_prefixes($dom, $merged_args);
+  my @ordered_component_keys = $class->get_component_ordered_keys(%components);
+
   return bless +{
     class => $class,
     dom => $dom,
     components => \%components,
+    ordered_component_keys => \@ordered_component_keys,
     init_args => $merged_args,
   }, $class;
+}
+
+sub get_component_ordered_keys {
+  my ($class, %components) = @_;
+  return map {
+    $_->{key}
+  } sort {
+    $a->{order} <=> $b->{order}
+  } map {
+    $components{$_}
+  } keys %components;
 }
 
 sub create_dom {
@@ -66,6 +80,8 @@ sub setup_components {
           my $uuid = $class->generate_component_uuid($prefix);
           $child_dom->attr({'uuid',$uuid});
           $components{$uuid} = +{
+              order => scalar(keys %components),
+              key => $uuid,
             $class->setup_component_info($prefix,
               $current_container_id,
               $component_name,
@@ -93,7 +109,7 @@ sub setup_component_info {
   my %attrs = $class->setup_component_attr($dom);
   return prefix => $prefix,
     name => $name,
-    current_container_id => $current_container_id,
+    current_container_id => $current_container_id||'',
     attrs => \%attrs;
 }
 
@@ -150,15 +166,18 @@ sub setup_data_path_hander {
 has dom => (is=>'ro', required=>1);
 has components => (is=>'ro', required=>1);
 has component_handlers => (is=>'ro', required=>1);
+has ordered_component_keys => (is=>'ro', required=>1);
 
 sub create {
   my $factory = shift;
-  return $factory->{class}->new(
+  my @args = (
     $factory->prepare_args(@_),
     dom => $factory->prepare_dom,
     components => $factory->prepare_components,
+    ordered_component_keys => $factory->prepare_ordered_component_keys,
     component_handlers => $factory->prepare_component_handlers,
   );
+  return $factory->{class}->new(@args);
 }
 
 sub prepare_args {
@@ -171,6 +190,8 @@ sub prepare_args {
 sub prepare_dom { shift->{dom}->clone }
 
 sub prepare_components { shift->{components} }
+
+sub prepare_ordered_component_keys { shift->{ordered_component_keys} }
 
 sub prepare_component_handlers {
   my ($factory, %merged_args) = @_;
@@ -191,7 +212,8 @@ sub get_processed_dom {
 
 sub process_components {
   my ($self, $dom) = @_;
-  foreach my $id(keys %{$self->components}) {
+  my @ordered_keys = @{$self->ordered_component_keys};
+  foreach my $id(@ordered_keys) {
     $self->process_component(
       $dom->at("[uuid='$id']"), 
       %{$self->components->{$id}});

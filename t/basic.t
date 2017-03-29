@@ -16,15 +16,18 @@ use Mojo::DOM58;
 }
 
 {
-  ok my $res = request '/list';
-  ok my $dom = Mojo::DOM58->new($res->content);
-  warn $res->content;
-}
-
-{
   ok my $res = request '/user';
   ok my $dom = Mojo::DOM58->new($res->content);
   warn $res->content;
 }
 
+{
+  ok my $res = request '/list';
+  ok my $dom = Mojo::DOM58->new($res->content);
+  warn $res->content;
+}
+
 done_testing;
+
+__END__
+

@@ -24,10 +24,15 @@ around 'prepare_component_handlers', sub {
     my ($self, $dom, $component_info, %attrs) = @_;
     $dom->overlay(sub {
       $self->_profile(begin => "=> ViewComponent: $component_info->{view}");
-      my $component_dom =$self->view($component_info->{view}, %attrs, content=>$_)
-        ->get_processed_dom;
+      my $component_view = $self->view(
+          $component_info->{view}, 
+          %attrs,
+          view=>$self, 
+          container=> $self->components->{$component_info->{current_container_id}}{view_instance},
+          content=>$_);
+      $self->components->{$attrs{uuid}}{view_instance} = $component_view;
       $self->_profile(end => "=> ViewComponent: $component_info->{view}");
-      return $component_dom;
+      return $component_view->get_processed_dom;
     });
   };
   return $handlers;
