@@ -3,7 +3,7 @@ package  MyApp::View::Input;
 use Moo;
 extends 'Catalyst::View::Template::Lace';
 
-has [qw/id label name type container/] => (is=>'ro');
+has [qw/id label name type container view/] => (is=>'ro');
 
 has value => (
   is=>'ro',
@@ -19,6 +19,12 @@ has errors => (
 
 sub process_dom {
   my ($self, $dom) = @_;
+  
+  $self->view->dom->append_link_uniquely({
+    href=>'/css/input.min.css',
+    rel=>'stylesheet'});
+
+  $self->view->dom->append_script_uniquely({src=>'/js/input.min.js'});
 
   # Set Label content
   $dom->at('label')
@@ -43,6 +49,10 @@ sub process_dom {
 sub template {
   my $class = shift;
   return q[
+    <link href="css/main.css" />
+    <style id="min">
+      div { border: 1px }
+    </style>
     <div class="field">
       <label>LABEL</label>
       <input />

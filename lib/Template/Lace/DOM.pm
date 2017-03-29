@@ -93,6 +93,44 @@ sub fill {
   }
 }
 
+sub append_style_uniquely {
+  my $dom = shift;
+  my %attrs = ref($_[0]) ? %{$_[0]} : @_;
+  my $content = delete($attrs{content}) || '';
+  my $head = $dom->at('head');
+  unless($head->at(qq{style[id="${\do { $attrs{id}||'' }}"]})) {
+    my $attr_string = join ' ', map { "$_='$attrs{$_}'" } keys %attrs;
+    $head->append_content("<style $attr_string>$content</style>");
+  }
+  return $dom;
+}
+
+sub append_script_uniquely {
+  my $dom = shift;
+  my %attrs = ref($_[0]) ? %{$_[0]} : @_;
+  my $content = delete($attrs{content}) || '';
+  my $head = $dom->at('head');
+  unless(
+    $head->at(qq{script[src="${\do { $attrs{src}||'' }}"]})
+    || $head->at(qq{script[id="${\do { $attrs{id}||'' }}"]})
+  ) {
+    my $attr_string = join ' ', map { "$_='$attrs{$_}'" } keys %attrs;
+    $head->append_content("<script $attr_string>$content</script>");
+  }
+  return $dom;
+}
+
+sub append_link_uniquely {
+  my $dom = shift;
+  my %attrs = ref($_[0]) ? %{$_[0]} : @_;
+  my $head = $dom->at('head');
+  unless($head->at(qq{link[href="$attrs{href}"]})) {
+    my $attr_string = join ' ', map { "$_='$attrs{$_}'" } keys %attrs;
+    $head->append_content("<link $attr_string />");
+  }
+  return $dom;
+}
+
 # attribute helpers (tag specific or otherwise
 
 sub attribute_helper {
@@ -104,6 +142,8 @@ sub attribute_helper {
 sub target { shift->attribute_helper('target', @_) }
 sub src { shift->attribute_helper('src', @_) }
 sub href { shift->attribute_helper('href', @_) }
+sub id { shift->attribute_helper('id', @_) }
+sub class { shift->attribute_helper('class', @_) }
 
 # unique tag helpers
 

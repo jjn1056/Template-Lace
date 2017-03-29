@@ -21,7 +21,7 @@ around 'prepare_component_handlers', sub {
   my ($orig, $class, @args) = @_;
   my $handlers = $class->$orig(@args);
   $handlers->{view} = sub {
-    my ($self, $dom, $component_info, %attrs) = @_;
+    my ($self, $dom, $component_info, %attrs) = @_;    
     $dom->overlay(sub {
       $self->_profile(begin => "=> ViewComponent: $component_info->{view}");
       my $component_view = $self->view(
@@ -31,8 +31,25 @@ around 'prepare_component_handlers', sub {
           container=> $self->components->{$component_info->{current_container_id}}{view_instance},
           content=>$_);
       $self->components->{$attrs{uuid}}{view_instance} = $component_view;
+      my $component_dom = $component_view->get_processed_dom;
+
+      $component_dom->find('link:not(head link)')->each(sub {
+          $self->dom->append_link_uniquely($_->attr);
+          $_->remove;
+      });
+      $component_dom->find('style:not(head style)')->each(sub {
+          my $content = $_->content || '';
+          $self->dom->append_style_uniquely(%{$_->attr}, content=>$content);
+          $_->remove;
+      });
+      $component_dom->find('script:not(head script)')->each(sub {
+          my $content = $_->content || '';
+          $self->dom->append_script_uniquely(%{$_->attr}, content=>$content);
+          $_->remove;
+      });
+
       $self->_profile(end => "=> ViewComponent: $component_info->{view}");
-      return $component_view->get_processed_dom;
+      return $component_dom;
     });
   };
   return $handlers;
@@ -45,7 +62,6 @@ around 'get_component_prefixes', sub {
 };
 
 1;
-
 
 =head1 NAME
 
