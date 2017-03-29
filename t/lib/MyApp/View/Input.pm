@@ -24,7 +24,8 @@ sub process_dom {
     href=>'/css/input.min.css',
     rel=>'stylesheet'});
 
-  $self->view->dom->append_script_uniquely({src=>'/js/input.min.js'});
+  $self->view->dom->append_script_uniquely({
+    src=>'/js/input.min.js'});
 
   # Set Label content
   $dom->at('label')
