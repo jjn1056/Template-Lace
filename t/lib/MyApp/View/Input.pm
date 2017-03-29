@@ -34,7 +34,7 @@ sub process_dom {
 
   # Set Errors or remove error block
   if($self->errors) {
-    $dom->ol('#errors', $self->errors);
+    $dom->ol('.errors', $self->errors);
   } else {
     $dom->at("div.error")->remove;
   }
@@ -48,7 +48,7 @@ sub template {
       <input />
     </div>
     <div class="ui error message">
-      <ol id='errors'>
+      <ol class='errors'>
         <li>ERROR</li>
       </ol>
     </div>

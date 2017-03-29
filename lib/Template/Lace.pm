@@ -85,8 +85,17 @@ sub setup_components {
             $class->setup_component_info($prefix,
               $current_container_id,
               $component_name,
-              $child_dom) };
+              $child_dom) } unless $components{$uuid};
+          my $old_current_container_id = $current_container_id;
           $current_container_id = $uuid;
+          
+            %components = $class->setup_components($child_dom,
+              $prefix,
+              $current_container_id,
+              %components);
+
+          $current_container_id = $old_current_container_id;
+
         }
     }
       %components = $class->setup_components($child_dom,
