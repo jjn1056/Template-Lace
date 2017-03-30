@@ -11,7 +11,13 @@ sub display :Path('') {
     age => 42,
     motto => 'Why Not?');
   $c->view('User')
-    ->respond(200);
+    ->overlay_view(
+      'Master', sub {
+        title => $_->at('title')->content,
+        css => $_->find('link'),
+        meta => $_->find('meta'),
+        body => $_->at('body')->content})
+    ->respond(200);  
 }
 
 __PACKAGE__->meta->make_immutable;

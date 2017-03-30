@@ -54,7 +54,14 @@ sub process {
 
 sub overlay_view {
   my ($self, $view_name, $dom_proto, @args) = @_;
-  if($dom_proto->can('each')) {
+  if( (ref($dom_proto)||'') eq 'CODE') {
+    local $_ = $self->dom;
+    @args = ($dom_proto->($self->dom), @args);
+    $self->dom->overlay(sub {
+      return $self->view($view_name, @args, content=>$_)
+        ->get_processed_dom;
+    });
+  } elsif($dom_proto->can('each')) {
     $dom_proto->each(sub {
       return $self->overlay_view($view_name, $_, @args);
     });
