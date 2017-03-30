@@ -186,6 +186,17 @@ sub setup_data_path_hander {
   };
 }
 
+sub delete_component_by_key {
+  my ($class, $key) = @_;
+  delete $class->{components}{$key};
+  $class->{ordered_component_keys} = [
+    grep {
+      $_ ne $key
+    } @{$class->{ordered_component_keys}||[]}
+  ];
+
+}
+
 has dom => (is=>'ro', required=>1);
 has components => (is=>'ro', required=>1);
 has component_handlers => (is=>'ro', required=>1);

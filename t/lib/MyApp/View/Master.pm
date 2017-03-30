@@ -14,7 +14,6 @@ has body => (is=>'ro', required=>1);
 
 sub finalize_view_component {
   my ($class, $containing_view, $component_info) = @_;
-
   my $containing_dom = $containing_view->{dom};
   my $component_dom = $class->{dom};
   my $self = $class->create(
@@ -24,7 +23,7 @@ sub finalize_view_component {
   $self->process_dom($component_dom);
   $containing_dom->replace($component_dom);
 
-  delete $containing_view->{components}{$component_info->{key}};
+  $containing_view->delete_component_by_key($component_info->{key});
 }
 
 sub process_dom {
