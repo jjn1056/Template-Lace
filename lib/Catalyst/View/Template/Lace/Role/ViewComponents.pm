@@ -17,48 +17,88 @@ sub setup_view_name {
 
 sub view_prefix { 'view' }
 
-around 'prepare_component_handlers', sub {
+around 'create_factory', sub {
   my ($orig, $class, @args) = @_;
-  my $handlers = $class->$orig(@args);
-  $handlers->{view} = sub {
-    my ($self, $dom, $component_info, %attrs) = @_;    
-    $dom->overlay(sub {
-      $self->_profile(begin => "=> ViewComponent: $component_info->{view}");
-      my $component_view = $self->view(
-          $component_info->{view}, 
-          %attrs,
-          view=>$self, 
-          container=> $self->components->{$component_info->{current_container_id}}{view_instance},
-          content=>$_);
-      $self->components->{$attrs{uuid}}{view_instance} = $component_view;
-      my $component_dom = $component_view->get_processed_dom;
+  my $factory = $class->$orig(@args);
+  $factory->{init_args}{component_handlers}{view} = sub {
+    my ($self, $dom, $component_info, %attrs) = @_;
+    $self->_profile(begin => "=> ViewComponent: $component_info->{view}");
+    my $component_view = $self->view(
+        $component_info->{view}, 
+        %attrs,
+        view=>$self, 
+        container=> $self->components->{$component_info->{current_container_id}}{view_instance},
+        content=>$dom);
+    $self->components->{$attrs{uuid}}{view_instance} = $component_view;
 
-      $component_dom->find('link:not(head link)')->each(sub {
-          $self->dom->append_link_uniquely($_->attr);
-          $_->remove;
-      });
-      $component_dom->find('style:not(head style)')->each(sub {
-          my $content = $_->content || '';
-          $self->dom->append_style_uniquely(%{$_->attr}, content=>$content);
-          $_->remove;
-      });
-      $component_dom->find('script:not(head script)')->each(sub {
-          my $content = $_->content || '';
-          $self->dom->append_script_uniquely(%{$_->attr}, content=>$content);
-          $_->remove;
-      });
+    if($component_info->{current_container_id}) {
+      push @{$self->components->{$component_info->{current_container_id}}{children}}, $component_view;
+    }
 
-      $self->_profile(end => "=> ViewComponent: $component_info->{view}");
-      return $component_dom;
-    });
+    $self->_profile(end => "=> ViewComponent: $component_info->{view}");
   };
-  return $handlers;
+  return $factory;
 };
+
+after 'process_components', sub {
+  my ($self, $dom) = @_;
+  my @ordered_keys = @{$self->ordered_component_keys};
+  foreach my $id(@ordered_keys) {
+    if(my $component = $self->components->{$id}) {
+      next unless $component->{view_instance};
+      $self->finalize_process_component($dom, $component)
+    }
+  }
+};
+
+sub finalize_process_component {
+  my ($self, $dom, $component) = @_;
+  my $component_view = $component->{view_instance};
+
+  if(my @children = @{$component->{children}||[]}) {
+    $component_view->add_children(@children) if $component_view->can('add_children');
+  }
+
+  my $component_dom = $component_view->get_processed_dom;
+
+  # Move all the scripts, styles and links to the head area
+  $component_dom->find('link:not(head link)')->each(sub {
+      $self->dom->append_link_uniquely($_->attr);
+      $_->remove;
+  });
+  $component_dom->find('style:not(head style)')->each(sub {
+      my $content = $_->content || '';
+      $self->dom->append_style_uniquely(%{$_->attr}, content=>$content);
+      $_->remove;
+  });
+  $component_dom->find('script:not(head script)')->each(sub {
+      my $content = $_->content || '';
+      $self->dom->append_script_uniquely(%{$_->attr}, content=>$content);
+      $_->remove;
+  });
+
+  $dom->at("[uuid='$component->{key}']")->replace($component_dom); #ugg
+}
 
 around 'get_component_prefixes', sub {
   my ($orig, $class, @args) = @_;
   my @prefixes = $class->$orig(@args);
   return 'view', @prefixes;
+};
+
+around 'COMPONENT', sub {
+  my ($orig, $class, $app, @args) = @_;
+  my $factory = $class->$orig($app, @args);
+
+  foreach my $key(keys %{$factory->{components}}) {
+    my $info = $factory->{components}{$key};
+    if(my $view = $info->{view}) {
+      $view = $app->view($view);
+      $view->finalize_view_component($factory, $info)
+        if $view->can('finalize_view_component'); 
+    }
+  }
+  return $factory;
 };
 
 1;

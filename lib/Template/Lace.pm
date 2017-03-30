@@ -15,17 +15,25 @@ sub create_factory {
   my $class = shift;
   my $merged_args = ref($_[0]) eq 'HASH' ? $_[0] : +{ @_ }; # Allow init args as list or ref
   my $dom = $class->create_dom($merged_args);
+  $class->finalize_dom($dom, $merged_args);
   my %components = $class->find_components_by_prefixes($dom, $merged_args);
   my @ordered_component_keys = $class->get_component_ordered_keys(%components);
-
-  return bless +{
+  my $factory = bless +{
     class => $class,
     dom => $dom,
     components => \%components,
     ordered_component_keys => \@ordered_component_keys,
     init_args => $merged_args,
   }, $class;
+
+  $factory->finalize_factory;
+  return $factory;
 }
+
+sub finalize_dom { my ($class, $dom, $merged_args) = @_ }
+
+sub finalize_factory { my ($factory) = @_ }
+
 
 sub get_component_ordered_keys {
   my ($class, %components) = @_;
@@ -80,12 +88,18 @@ sub setup_components {
           my $uuid = $class->generate_component_uuid($prefix);
           $child_dom->attr({'uuid',$uuid});
           $components{$uuid} = +{
-              order => scalar(keys %components),
-              key => $uuid,
+            order => scalar(keys %components),
+            key => $uuid,
             $class->setup_component_info($prefix,
               $current_container_id,
               $component_name,
-              $child_dom) } unless $components{$uuid};
+              $child_dom),
+          } unless $components{$uuid};
+
+          if($current_container_id) {
+            push @{$components{$current_container_id}{children_ids}}, $uuid;
+          }
+
           my $old_current_container_id = $current_container_id;
           $current_container_id = $uuid;
           
@@ -184,7 +198,6 @@ sub create {
     dom => $factory->prepare_dom,
     components => $factory->prepare_components,
     ordered_component_keys => $factory->prepare_ordered_component_keys,
-    component_handlers => $factory->prepare_component_handlers,
   );
   return $factory->{class}->new(@args);
 }
@@ -202,11 +215,6 @@ sub prepare_components { shift->{components} }
 
 sub prepare_ordered_component_keys { shift->{ordered_component_keys} }
 
-sub prepare_component_handlers {
-  my ($factory, %merged_args) = @_;
-  return $merged_args{component_handlers}||+{};
-}
-
 sub render {
   return shift->get_processed_dom
     ->to_string;
@@ -223,6 +231,7 @@ sub process_components {
   my ($self, $dom) = @_;
   my @ordered_keys = @{$self->ordered_component_keys};
   foreach my $id(@ordered_keys) {
+    next unless $self->components->{$id}; # we might delete the component
     $self->process_component(
       $dom->at("[uuid='$id']"), 
       %{$self->components->{$id}});
@@ -248,7 +257,10 @@ sub process_attrs {
 
 sub find_component_handler_for {
   my ($self, %component_info) = @_;
-  if(my $prefix = $self->component_handlers->{$component_info{prefix}}) {
+  my %handlers = %{$self->component_handlers||+{}};
+
+
+  if(my $prefix = $handlers{$component_info{prefix}}) {
     if(ref $prefix eq 'CODE') {
       return $prefix;
     } elsif(ref $prefix eq 'HASH') {

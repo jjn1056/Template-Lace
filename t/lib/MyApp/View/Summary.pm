@@ -20,6 +20,7 @@ sub process_dom {
     'Master', $dom,
     title => $dom->at('title')->content,
     css => $dom->find('link'),
+    meta => $dom->find('meta'),
     body => $dom->at('body')->content);
 
   # fill a bunch of placeholders

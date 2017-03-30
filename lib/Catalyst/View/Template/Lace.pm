@@ -19,6 +19,7 @@ has ctx => (is=>'ro', required=>1);
 
 sub ACCEPT_CONTEXT {
   my ($factory, $c, @args) = @_;
+  return $factory unless ref $c;
   return $factory->create(@args, ctx=>$c);
 }
 
