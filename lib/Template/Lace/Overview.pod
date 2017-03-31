@@ -2,7 +2,7 @@
 
 You always get to a point in a new open source project where you are still unclear about a lot of things, aspect of the API, the general code organization, etc., but you are starting to feel the need for peer  feedback.  There's a number of things in Template::Lace that I'm not very happy about, particularly the code around the component system, so I'm not going to write a big long presentation of it (I mean I might still toss this all in the trash and start again with lessons learned).  But thought I'd just present some of the code and see if it speaks for itself.  If interested in seeing more you can review the Github repo (L<https://github.com/jjn1056/Template-Lace>).  This post presumes basic knowledge of Perl (L<https://www.perl.org>), Catalyst (L<https://metacpan.org/release/Catalyst-Runtime>) and support technologies like Moo/se. (L<https://metacpan.org/pod/Moo> / L<https://metacpan.org/pod/Moose>)
 
-Example Template:
+Example Template: ($HOME/lib/MyApp/View/user.html)
 
     <html>
       <head>
@@ -62,9 +62,41 @@ Unlike a more traditional template system like Template::Toolkit, we don't mix d
 
     __PACKAGE__->meta->make_immutable;
 
-Here you can see we are calling the view and passing it the required attributes.  In this example the values are hard coded but you can probably see it would be just as easy to pull the values from a database.  Additionally we also call the method http_ok which is a helper method that takes the rendered view and sets it up as the response (with a HTTP status code of 200 OK; the Catalyst view for this automatically sets the text/html content-type).
+Here you can see we are calling the view and passing it the required attributes.  In this example the values are hard coded but you can probably see it would be just as easy to pull the values from a database.  Additionally we also call the method http_ok which is a helper method that takes the rendered view and sets it up as the response (with a HTTP status code of 200 OK; the Catalyst view for this automatically sets the text/html content-type).  When run it would produce a response like:
 
-This is the bare basics of Template::Lace but there's a ton of other features and ways to better manage the complexity of your display logic.  I'm going to leave you with a short taste of what a more complex template with components might look like.  Here's a template that contains a form with an input controls, as well as a footer, timestamp and 'master' layout.  Its job is to display a list of Todo items:
+    <html>
+      <head>
+        <title>
+          User Info
+        </title>
+      </head>
+      <body id="body">
+        <dl id="user">
+          <dt>
+            <a href="/profile/john">Name</a>
+          </dt>
+          <dd id="name">
+            John
+          </dd>
+          <dt>
+            Age
+          </dt>
+          <dd id="age">
+            42
+          </dd>
+          <dt>
+            Motto
+          </dt>
+          <dd id="motto">
+            Why Not?
+          </dd>
+        </dl>
+      </body>
+    </html>
+
+This is the bare basics of Template::Lace but there's a ton of other features and ways to better manage the complexity of your display logic.  I'm going to leave you with a short taste of what a more complex template with components might look like.  Here's a template that contains a form with an input controls, as well as a footer, timestamp and 'master' layout.  Its job is to display a list of Todo items.
+
+($HOME/lib/MyApp/View/list.html):
 
     <view-master id='mainwrapper'
         title=\'title:content'
@@ -131,6 +163,22 @@ So this is matching the tag 'ol' with an id of 'todos' and filling it with the l
       default=>sub { $_[0]->container->maybe::errors->{$_[0]->name} },
     );
 
+    sub finalize_dom {
+      my ($class, $dom, $merged_args) = @_;
+
+      # Mark some meta-data
+      $dom->at('head')
+        ->prepend_content("<meta application-startup='${\do {scalar localtime}}'>");
+
+      # Add some scripts and styles
+      $dom->append_link_uniquely({
+          href=>'/css/input.min.css',
+          rel=>'stylesheet'});
+
+       $dom->append_script_uniquely({
+          src=>'/js/input.min.js'});
+    }
+
     sub process_dom {
       my ($self, $dom) = @_;
 
@@ -169,9 +217,71 @@ So this is matching the tag 'ol' with an id of 'todos' and filling it with the l
       ];
     }
 
-So there's a lot going on here!  One thing to note, we put the actual HTML template in a method 'template' instead of a stand alone file.  Its your choice but for these small components I like to keep all the code in one file.  When run this will ask its containing component (in this case the view-form component) for its value and any errors.  The view-form component, BTW got its values from the containing view, via attributes in the template (fif='$.form.fif' and errors='$.form.errors' ).  It will then use that value to setup the input tag and populate and error messages; otherwise we delete the error messages block. The entire result will be inserted into the original template at the same node point as occupied by the component. 
+So there's a lot going on here!  One thing to note, we put the actual HTML template in a method 'template' instead of a stand alone file.  Its your choice but for these small components I like to keep all the code in one file.  When run this will ask its containing component (in this case the view-form component) for its value and any errors.  The view-form component, BTW got its values from the containing view, via attributes in the template (fif='$.form.fif' and errors='$.form.errors' ).  It will then use that value to setup the input tag and populate and error messages; otherwise we delete the error messages block. The entire result will be inserted into the original template at the same node point as occupied by the component.
 
-So even though we have a page with a lot happening, we can write a view class that focuses just on the primary task (display the list of Todos) and let components handle the other work.  I believe this leads to well organized and concise templates that are maintainable over the long term.
+You might have noticed this view class added a new method compared to the earlier example C<finalize_dom>.  Generally when you render a response what you care about is all the things that are unique to that response.  However sometimes you want to add a few static things to your template, things that never change on a per result basis.  Or maybe you want to prerender somethign that's expensive and you don't want the overhead for each request.  In that case you can modify the base DOM using C<finalize_dom>, which gets called only once at application startup. Since each request gets a clone of the base DOM for the template, anything you change in C<finalize_dom> becomes part of all your responses for this view.
+
+Here's a sample of the actual result, rendering all the components (you can peek at the repository which has all the code for these examples to see how it all works)
+
+    <html>
+      <head>
+        <meta application-startup="Fri Mar 31 08:43:24 2017">
+        <meta charset="utf-8">
+        <meta content="width=device-width, initial-scale=1" name="viewport">
+        <title>
+          Things To Do
+        </title>
+        <link href="/static/base.css" rel="stylesheet" type="text/css">
+        <link href="/css/input.min.css" rel="stylesheet" type="text/css">
+        <script src="/js/input.min.js" type="text/javascript"></script>
+      </head>
+      <body id="body">
+        <h1>
+          Intro
+        </h1>
+        <form data-lace-id="form1" id="newtodo">
+          <div class="field">
+            <label for="item">Todo</label> <input id="item" name="item" type="text" value="milk">
+          </div>
+          <div class="ui error message">
+            <ol class="errors">
+              <li>too short
+              </li>
+              <li>too similar it existing item
+              </li>
+            </ol>
+          </div>
+          <div class="field">
+            <label for="item">Todo</label> <input id="item2" name="item" type="text" value="milk">
+          </div>
+          <div class="ui error message">
+            <ol class="errors">
+              <li>too short
+              </li>
+              <li>too similar it existing item
+              </li>
+            </ol>
+          </div>
+        </form>
+        <ol id="todos">
+          <li>Buy Milk
+          </li>
+          <li>Walk Dog
+          </li>
+        </ol>
+        <div>
+          Fri Mar 31 08:43:24 2017
+        </div>
+        <section id="footer">
+          <hr>
+          <p id="copy">
+            copyright 2015
+          </p>
+        </section>
+      </body>
+    </html>
+
+So even though we have a page with a lot happening, we can write a view class that focuses just on the primary task (display the list of Todos) and let components handle the other work.  A complex template can be logically divided into clear chunks, each dedicated to one function.  I believe this leads to well organized and concise templates that are maintainable over the long term.
 
 =head1 Summary
 
