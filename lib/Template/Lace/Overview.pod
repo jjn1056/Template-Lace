@@ -11,11 +11,11 @@ Example Template:
         <body>
           <dl id='user'>
             <dt>Name</dt>
-            <dd id='name'>NAME</dd>
+            <dd id='name'> -NAME- </dd>
             <dt>Age</dt>
-            <dd id='age'>AGE</dd>
+            <dd id='age'> -AGE- </dd>
             <dt>Motto</dt>
-            <dd id='motto'>MOTTO</dd>
+            <dd id='motto'> -MOTTO- </dd>
           </dl>
         </body>
     </html>
