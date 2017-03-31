@@ -85,7 +85,7 @@ This is the bare basics of Template::Lace but there's a ton of other features an
                 type="text" />
           </view-form>
           <ol id='todos'>
-            <li>What To Do?</li>
+            <li> -What To Do?- </li>
           </ol>
           <lace-timestamp />
           <view-footer copydate='$.copywrite' />
@@ -158,12 +158,12 @@ So this is matching the tag 'ol' with an id of 'todos' and filling it with the l
       my $class = shift;
       return q[
         <div class="field">
-          <label>LABEL</label>
+          <label> -LABEL- </label>
           <input />
         </div>
         <div class="ui error message">
           <ol class='errors'>
-            <li>ERROR</li>
+            <li> -ERROR- </li>
           </ol>
         </div>
       ];
