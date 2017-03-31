@@ -135,12 +135,31 @@ The main view class for this template is just handling the bit where we layout t
 
     has [qw/form items copywrite/] => (is=>'ro', required=>1);
 
+    sub finalize_dom {
+      my ($class, $dom, $merged_args) = @_;
+
+      # Mark some meta-data
+      $dom->at('head')->prepend_content("<meta application-startup='${\do {scalar localtime}}'>");
+
+      # Add some scripts and styles
+      $dom->append_link_uniquely({
+          href=>'/css/input.min.css',
+          rel=>'stylesheet'});
+
+       $dom->append_script_uniquely({
+          src=>'/js/input.min.js'});
+    }
+
     sub process_dom {
       my ($self, $dom) = @_;
       $dom->ol('#todos', $self->items);
     }
 
-So this is matching the tag 'ol' with an id of 'todos' and filling it with the list of items in attribute 'items'.  The 'ol' method helper is smart enough to know that if you are assigning a list to an 'ol' tag we want to loop over the list and create 'li' tags based on the template. This makes using Template::Lace easy for doing a lot of the more common display work like filling loops and content.  But there's a lot of other things going on in that template.  There's several components but I'm going to end this with just showing you the code for the 'view-input' component.  There's a few different ways to declare components in Template::Lace (at core a component is just a code ref callback that expects a DOM) but for Catalyst we created a role that lets you delegate handling a component to another view class.  This makes organizing your components for reuse easy and takes good advantage of Catalyst features.  Here's the code for the 'view-input' component:
+So this is matching the tag 'ol' with an id of 'todos' and filling it with the list of items in attribute 'items'.  The 'ol' method helper is smart enough to know that if you are assigning a list to an 'ol' tag we want to loop over the list and create 'li' tags based on the template. This makes using Template::Lace easy for doing a lot of the more common display work like filling loops and content. 
+
+You might have noticed this view class added a new method compared to the earlier example C<finalize_dom>.  Generally when you render a response what you care about is all the things that are unique to that response.  However sometimes you want to add a few static things to your template, things that never change on a per result basis.  Or maybe you want to prerender somethign that's expensive and you don't want the overhead for each request.  In that case you can modify the base DOM using C<finalize_dom>, which gets called only once at application startup. Since each request gets a clone of the base DOM for the template, anything you change in C<finalize_dom> becomes part of all your responses for this view.
+
+So what about the components such as 'view-master', and 'view-footer'?  There's several components but I'm going to end this with just showing you the code for the 'view-input' component.  There's a few different ways to declare components in Template::Lace (at core a component is just a code ref callback that expects a DOM) but for Catalyst we created a role that lets you delegate handling a component to another view class.  You might have noticed the role C<Catalyst::View::Template::Lace::Role::ViewComponents> was added to this view class.  This makes organizing your components for reuse easy and takes good advantage of Catalyst features.  Here's the code for the 'view-input' component:
 
     package  MyApp::View::Input;
 
@@ -162,22 +181,6 @@ So this is matching the tag 'ol' with an id of 'todos' and filling it with the l
       lazy=>1,
       default=>sub { $_[0]->container->maybe::errors->{$_[0]->name} },
     );
-
-    sub finalize_dom {
-      my ($class, $dom, $merged_args) = @_;
-
-      # Mark some meta-data
-      $dom->at('head')
-        ->prepend_content("<meta application-startup='${\do {scalar localtime}}'>");
-
-      # Add some scripts and styles
-      $dom->append_link_uniquely({
-          href=>'/css/input.min.css',
-          rel=>'stylesheet'});
-
-       $dom->append_script_uniquely({
-          src=>'/js/input.min.js'});
-    }
 
     sub process_dom {
       my ($self, $dom) = @_;
@@ -218,8 +221,6 @@ So this is matching the tag 'ol' with an id of 'todos' and filling it with the l
     }
 
 So there's a lot going on here!  One thing to note, we put the actual HTML template in a method 'template' instead of a stand alone file.  Its your choice but for these small components I like to keep all the code in one file.  When run this will ask its containing component (in this case the view-form component) for its value and any errors.  The view-form component, BTW got its values from the containing view, via attributes in the template (fif='$.form.fif' and errors='$.form.errors' ).  It will then use that value to setup the input tag and populate and error messages; otherwise we delete the error messages block. The entire result will be inserted into the original template at the same node point as occupied by the component.
-
-You might have noticed this view class added a new method compared to the earlier example C<finalize_dom>.  Generally when you render a response what you care about is all the things that are unique to that response.  However sometimes you want to add a few static things to your template, things that never change on a per result basis.  Or maybe you want to prerender somethign that's expensive and you don't want the overhead for each request.  In that case you can modify the base DOM using C<finalize_dom>, which gets called only once at application startup. Since each request gets a clone of the base DOM for the template, anything you change in C<finalize_dom> becomes part of all your responses for this view.
 
 Here's a sample of the actual result, rendering all the components (you can peek at the repository which has all the code for these examples to see how it all works)
 
