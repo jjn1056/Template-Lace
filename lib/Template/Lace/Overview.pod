@@ -182,3 +182,5 @@ L<https://github.com/jjn1056/Template-Lace>
 also see Perl Catalyst, a MVC framework for web development: L<https://metacpan.org/release/Catalyst-Runtime>
 and Perl (L<https://www.perl.org>)
 
+=cut
+
