@@ -142,7 +142,7 @@ use_ok 'Template::Lace::Factory';
   use Moo;
   with 'Template::Lace::Model';
 
-  has [qw(name label type value)] => (is=>'ro', required=>1);
+  has [qw(name label type value container)] => (is=>'ro', required=>1);
 
   sub template {q[
     <div>

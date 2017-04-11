@@ -22,28 +22,56 @@ sub get_processed_dom {
 sub process_components {
   my ($self, $dom) = @_;
   my @ordered_keys = @{$self->components->ordered_component_keys};
+  my %constructed_components = ();
   foreach my $id(@ordered_keys) {
     next unless $self->components->handlers->{$id}; # might skip if 'static' handler
-    $self->process_component(
+    my $constructed_component = $self->process_component(
       $dom->at("[uuid='$id']"), 
       $self->components->handlers->{$id},
+      \%constructed_components,
       %{$self->components->component_info->{$id}});
+    $constructed_components{$id} = $constructed_component
+      if $constructed_component;
+  }
+  # Now post process..  We do this so that parents can have access to
+  # children for transforming dom.
+  foreach my $id(@ordered_keys) {
+    next unless $constructed_components{$id};
+    my $processed_component = $constructed_components{$id}->get_processed_dom;
+    ## TODO move styles and scripts up
+    $dom->at("[uuid='$id']")->replace($processed_component);
+
   }
 }
 
 sub process_component {
-  my ($self, $dom, $component, %component_info) = @_;
+  my ($self, $dom, $component, $constructed_components, %component_info) = @_;
   my %attrs = ( 
     $self->process_attrs($dom, %{$component_info{attrs}}),
     content=>$dom->content,
     model=>$self->model);
+
+  if(my $container_id = $component_info{current_container_id}) {
+    $attrs{container} = $constructed_components->{$container_id}->model;
+  }
+
   if(Scalar::Util::blessed $component) {
-    my $processed_component = $component
-      ->create(%attrs)
-      ->get_processed_dom;
-    $dom->replace($processed_component);
+    my $constructed_component;
+    if($attrs{container}) {
+      if($attrs{container}->can('create_child')) {
+        $constructed_component = $attrs{container}->create_child($component, %attrs);
+      } else {
+        $constructed_component = $component->create(%attrs);
+        $attrs{container}->add_child($constructed_component) if
+          $attrs{container}->can('add_child');
+      }
+    } else {
+      $constructed_component = $component->create(%attrs);
+    }
+    return $constructed_component;
   } else {
     $component->($dom, %attrs);
+    return;
   }
 }
 
