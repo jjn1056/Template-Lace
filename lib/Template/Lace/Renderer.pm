@@ -53,7 +53,25 @@ sub process_components {
   foreach my $id(@ordered_keys) {
     next unless $constructed_components{$id};
     my $processed_component = $constructed_components{$id}->get_processed_dom;
-    ## TODO move styles and scripts up
+
+    # Move all the scripts, styles and links to the head area
+    # TODO this probably doesn't work if the stuff is in a component
+    # inside a component.
+    $processed_component->find('link:not(head link)')->each(sub {
+        $dom->append_link_uniquely($_->attr);
+        $_->remove;
+    });
+    $processed_component->find('style:not(head style)')->each(sub {
+        my $content = $_->content || '';
+        $dom->append_style_uniquely(%{$_->attr}, content=>$content);
+        $_->remove;
+    });
+    $processed_component->find('script:not(head script)')->each(sub {
+        my $content = $_->content || '';
+        $dom->append_script_uniquely(%{$_->attr}, content=>$content);
+        $_->remove;
+    });
+
     $dom->at("[uuid='$id']")->replace($processed_component);
 
   }

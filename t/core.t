@@ -126,6 +126,7 @@ use_ok 'Template::Lace::Factory';
   has [qw(method action content)] => (is=>'ro', required=>1);
 
   sub template {q[
+    <style id='formstyle'>sdfsdfsd</style>
     <form></form>
   ]}
 
@@ -145,6 +146,7 @@ use_ok 'Template::Lace::Factory';
   has [qw(name label type value container)] => (is=>'ro', required=>1);
 
   sub template {q[
+    <style id="inputstyle">fff</style>
     <div>
       <label></label>
       <input></input>
