@@ -144,6 +144,9 @@ sub src { shift->attribute_helper('src', @_) }
 sub href { shift->attribute_helper('href', @_) }
 sub id { shift->attribute_helper('id', @_) }
 sub class { shift->attribute_helper('class', @_) }
+sub action { shift->attribute_helper('action', @_) }
+sub method { shift->attribute_helper('method', @_) }
+
 
 # unique tag helpers
 
@@ -182,6 +185,13 @@ sub form { shift->tag_helper_by_id('form', @_) }
 sub ul { shift->list_helper_by_id('ul', @_) }
 sub ol { shift->list_helper_by_id('ol', @_) }
 sub dl { shift->tag_helper_by_id('dl', @_) }
+
+sub at_id {
+  my ($self, $id, $data) = @_;
+  $self->at($id)->fill($data);
+  return $self;
+}
+
 
 1;
 

@@ -6,7 +6,7 @@ around 'setup_component_info', sub {
   my ($orig, $class, @args) = @_;
   my %info = $class->$orig(@args);
   $info{view} = $class->setup_view_name($info{name})
-    if $info{prefix} eq $class->view_prefix;
+    if $info{prefix} eq $class->view_component_prefix;
   return %info;
 };
 
@@ -15,30 +15,7 @@ sub setup_view_name {
   return join '::', map { ucfirst $_ } split('-', $name);
 }
 
-sub view_prefix { 'view' }
-
-around 'create_factory', sub {
-  my ($orig, $class, @args) = @_;
-  my $factory = $class->$orig(@args);
-  $factory->{init_args}{component_handlers}{view} = sub {
-    my ($self, $dom, $component_info, %attrs) = @_;
-    $self->_profile(begin => "=> ViewComponent: $component_info->{view}");
-    my $component_view = $self->view(
-        $component_info->{view}, 
-        %attrs,
-        view=>$self, 
-        container=> $self->components->{$component_info->{current_container_id}}{view_instance},
-        content=>$dom);
-    $self->components->{$attrs{uuid}}{view_instance} = $component_view;
-
-    if($component_info->{current_container_id}) {
-      push @{$self->components->{$component_info->{current_container_id}}{children}}, $component_view;
-    }
-
-    $self->_profile(end => "=> ViewComponent: $component_info->{view}");
-  };
-  return $factory;
-};
+sub view_component_prefix { 'view' }
 
 after 'process_components', sub {
   my ($self, $dom) = @_;
@@ -80,16 +57,29 @@ sub finalize_process_component {
   $dom->at("[uuid='$component->{key}']")->replace($component_dom); #ugg
 }
 
-around 'get_component_prefixes', sub {
-  my ($orig, $class, @args) = @_;
-  my @prefixes = $class->$orig(@args);
-  return 'view', @prefixes;
-};
-
 around 'COMPONENT', sub {
-  my ($orig, $class, $app, @args) = @_;
-  my $factory = $class->$orig($app, @args);
+  my ($orig, $class, $app, $args) = @_;
 
+  push @{$args->{component_prefixes}}, $class->view_component_prefix;
+  $args->{component_handlers}{$class->view_component_prefix} = sub {
+    my ($self, $dom, $component_info, %attrs) = @_;
+    $self->_profile(begin => "=> ViewComponent: $component_info->{view}");
+    my $component_view = $self->view(
+        $component_info->{view}, 
+        %attrs,
+        view=>$self, 
+        container=> $self->components->{$component_info->{current_container_id}}{view_instance},
+        content=>$dom);
+    $self->components->{$attrs{uuid}}{view_instance} = $component_view;
+
+    if($component_info->{current_container_id}) {
+      push @{$self->components->{$component_info->{current_container_id}}{children}}, $component_view;
+    }
+
+    $self->_profile(end => "=> ViewComponent: $component_info->{view}");
+  };
+
+  my $factory = $class->$orig($app, $args);
   foreach my $key(keys %{$factory->{components}}) {
     my $info = $factory->{components}{$key};
     if(my $view = $info->{view}) {

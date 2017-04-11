@@ -15,9 +15,10 @@ sub create_factory {
   my $class = shift;
   my $merged_args = ref($_[0]) eq 'HASH' ? $_[0] : +{ @_ }; # Allow init args as list or ref
   my $dom = $class->create_dom($merged_args);
-  $class->finalize_dom($dom, $merged_args);
+  
   my %components = $class->find_components_by_prefixes($dom, $merged_args);
   my @ordered_component_keys = $class->get_component_ordered_keys(%components);
+
   my $factory = bless +{
     class => $class,
     dom => $dom,
@@ -25,15 +26,8 @@ sub create_factory {
     ordered_component_keys => \@ordered_component_keys,
     init_args => $merged_args,
   }, $class;
-
-  $factory->finalize_factory;
   return $factory;
 }
-
-sub finalize_dom { my ($class, $dom, $merged_args) = @_ }
-
-sub finalize_factory { my ($factory) = @_ }
-
 
 sub get_component_ordered_keys {
   my ($class, %components) = @_;

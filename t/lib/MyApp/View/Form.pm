@@ -10,10 +10,12 @@ sub add_children {
   shift->children(\@_);
 }
 
-sub finalize_dom {
-  my ($class, $dom, $merged_args) = @_;
+around 'create_dom', sub {
+  my ($orig, $class, $merged_args) = @_;
+  my $dom = $class->$orig($merged_args);
   $dom->at('form')->attr('data-lace-id','form1');
-}
+  return $dom;
+};
 
 sub finalize_view_component {
   my ($class, $factory, $attr) = @_;

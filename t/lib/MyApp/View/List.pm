@@ -9,11 +9,13 @@ with 'Template::Lace::Role::Pretty',
 
 has [qw/form items copywrite/] => (is=>'ro', required=>1);
 
-sub finalize_dom {
-  my ($class, $dom, $merged_args) = @_;
+around 'create_dom', sub {
+  my ($orig, $class, $merged_args) = @_;
+  my $dom = $class->$orig($merged_args);
   $dom->at('head')
     ->prepend_content("<meta prepared='${\do {scalar localtime}}'>");
-}
+  return $dom;
+};
 
 sub process_dom {
   my ($self, $dom) = @_;

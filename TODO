@@ -1,12 +1,75 @@
 -- Not in love with multiple inheritance design...
 -- And not in love with the one class to rule them all either.
--- should components be able to get info from each other?
+-- should components be able to get info from each other? DONE
+    but maybe the add-parent/add childen thing should be in core
+
 -- Catalyst 'subrequest' handler example
 -- Need to go through this again an mark methods as 'non public'
 
--- What about the idea of allowing component callbacks on attributes
-    and not just tags?:
-    eg: <a helper-href="['user',$.c.args,{page:'1'}]">
-   Would maybe use JSONY or similar to create the attributes?
+-- the core compoent stuff needs a redo.  just a simple coderef isn't 
+  enough.  We need an object that has API for 'on connect, on run, finalize'
+  etc to cover the worj that the catalyt view componet is hacking in.
+  if we can do something that moved that messy code from the catalyst role
+    into core, that would be best.  We can make a CompoentHandler::Coderef
+    class to make the common case easy.
 
 
+my $component_handler_registry = Template::Lace::ComponentHandlerRegistry->new;
+
+$component_handler_registry
+  ->add(Template::Lace::ComponentHandler::CodeRef->new(
+      code=>sub { my ($self, $dom, $attrs) = @_; ... });
+
+my $user_template_factory = Template::Lace::Factory->new(
+  class=>'MyApp::Template::User',
+  component_handlers=>$component_handler_registry);
+
+
+my $user_template = $user_template_factory->create(%args);
+
+$user_template->add_friends(@friends);
+my $content = $user_template->render;
+    
+
+how even to have TO_JSON for doing both HTML and JSON?
+
+  ResourceClass (InterfaceModel??)
+  RepresentationRenderer
+
+
+  my $registry = Template::Lace::Registry->new(
+    component_handlers
+
+  my $template_factory = Template::Lace::Factory
+
+
+  package MyApp::DisplayModel::User;
+
+  use Moose;
+  use Lace::AttributeAnnotations;
+  use MyApp::Types;
+
+  has 'name', (
+    is=>'ro',
+    isa=>String,
+    display_html=>sub {
+      my ($self, $data, $dom) = @_;
+      $dom->at('#user-name', $data);
+    });
+
+  has 'friends, (
+    is=>'ro',
+    isa=>ArrayRef[Person],
+    display_hmtl=> sub {
+      my ($self, $data, $dom) = @_;
+      $dom->ul('#friends, $data)
+  );
+
+  
+
+
+# The idea is that the sub component gets it args from
+# the contaiing componet
+ <lace-form errors='$.form.errors' ...>
+  <input errors='$.errors.age' value='$.values.age' title='$self.title' />
+ </lace-form>
