@@ -81,9 +81,12 @@ around BUILDARGS => sub {
 
 sub create {
   my ($self, %args) = @_;
-  my $model = $self->create_model(%args);
   my $dom = $self->create_dom(%args);
-  my $renderer = $self->create_renderer($model,$dom, $self->components);
+  my $renderer = $self->create_renderer(
+    $self->model_class,
+    \%args,
+    $dom,
+    $self->components);
   return $renderer;
 }
 
@@ -93,17 +96,12 @@ sub create_dom {
   return $dom;
 }
 
-sub create_model {
-  my ($self, %args) = @_;
-  my $model = $self->model_class->new(%args); # Should %args be processed by process_attrs?
-  return $model;
-}
-
 sub create_renderer {
-  my ($self, $model, $dom, $components) = @_;
+  my ($self, $model_class, $model_attrs, $dom, $components) = @_;
   my $renderer = $self->renderer_class->new(
     components=>$components,
-    model=>$model,
+    model_class=>$model_class,
+    model_attrs=>$model_attrs,
     dom=>$dom);
   return $renderer;
 }

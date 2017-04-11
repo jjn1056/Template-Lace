@@ -5,6 +5,21 @@ use Scalar::Util;
 
 has [qw(model dom components)] => (is=>'ro', required=>1);
 
+around BUILDARGS => sub {
+  my ($orig, $class, @args) = @_;
+  my $args = $class->$orig(@args);
+  $args->{model} = $class->build_model($args);
+  return $args;
+};
+
+sub build_model {
+  my ($class, $args) = @_;
+  my $model_class = delete $args->{model_class};
+  my $model_attrs = delete $args->{model_attrs};
+  my $model = $model_class->new(%{$model_attrs});
+  return $model;
+}
+
 sub render {
   my $self = shift;
   $self->process_components($self->dom);
@@ -47,7 +62,7 @@ sub process_components {
 sub process_component {
   my ($self, $dom, $component, $constructed_components, %component_info) = @_;
   my %attrs = ( 
-    $self->process_attrs($dom, %{$component_info{attrs}}),
+    $self->process_attrs($self->model, $dom, %{$component_info{attrs}}),
     content=>$dom->content,
     model=>$self->model);
 
@@ -76,10 +91,10 @@ sub process_component {
 }
 
 sub process_attrs {
-  my ($self, $dom, %attrs) = @_;
+  my ($self, $ctx, $dom, %attrs) = @_;
   return map {
     my $proto = $attrs{$_};
-    my $value = ref($proto) ? $proto->($self->model, $dom) : $proto;
+    my $value = ref($proto) ? $proto->($ctx, $dom) : $proto;
     $_ => $value;
   } keys %attrs;
 }
