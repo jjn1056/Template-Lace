@@ -4,8 +4,9 @@ use Moo;
 use Patterns::UndefObject::maybe;
 
 extends 'Catalyst::View::Template::Lace';
+with 'Template::Lace::ModelRole';
 
-has [qw/id label name type container view/] => (is=>'ro');
+has [qw/id label name type container model/] => (is=>'ro');
 
 has value => (
   is=>'ro',
@@ -22,13 +23,6 @@ has errors => (
 sub process_dom {
   my ($self, $dom) = @_;
   
-  $self->view->dom->append_link_uniquely({
-    href=>'/css/input.min.css',
-    rel=>'stylesheet'});
-
-  $self->view->dom->append_script_uniquely({
-    src=>'/js/input.min.js'});
-
   # Set Label content
   $dom->at('label')
     ->content($self->label)

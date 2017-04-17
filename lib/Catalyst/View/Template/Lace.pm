@@ -4,101 +4,48 @@ our $VERSION = '0.001';
 
 use Moo;
 use Module::Runtime;
-use Scalar::Util;
 
-extends 'Catalyst::View',
-  'Template::Lace';
+use Catalyst::View::Template::Lace::Factory;
+use Catalyst::View::Template::Lace::Renderer;
+
+extends 'Catalyst::View';
 
 sub COMPONENT {
   my ($class, $app, $args) = @_;
-  return $class->create_factory(
-    $class->merge_config_hashes($class->config, $args));
+  my $merged_args = $class->merge_config_hashes($class->config, $args);
+  my $merged_component_handlers = $class->merge_config_hashes(
+    (delete($merged_args->{component_handlers})||+{}),
+    $class->view_components($app, $merged_args));
+
+  my $local_renderer = "${class}::Renderer";
+  eval "package $local_renderer; use Moo; extends 'Catalyst::View::Template::Lace::Renderer'";
+
+  my $adaptor = $args->{adaptor} || 'Catalyst::View::Template::Lace::Factory';
+
+  return Module::Runtime::use_module($adaptor)->new(
+    model_class=>$class,
+    renderer_class=>$local_renderer,
+    component_handlers=>$merged_component_handlers,
+    init_args=>+{ %$merged_args, app=>$app },
+  );
 }
 
-has ctx => (is=>'ro', required=>1);
+has ctx => (is=>'ro', required=>0);
+has catalyst_component_name => (is=>'ro', required=>1);
+has returns_status => (is=>'ro', predicate=>'has_returns_status');
 
-sub ACCEPT_CONTEXT {
-  my ($factory, $c, @args) = @_;
-  return $factory unless ref $c;
-  return $factory->create(@args, ctx=>$c);
-}
-
-sub respond {
-  my ($self, $status, $headers) = @_;
-  $self->_profile(begin => "=> ".Catalyst::Utils::class2classsuffix($self->catalyst_component_name)."->respond($status)");
-  for ($self->ctx->res) {
-    $_->status($status) if $_->status != 200; # Catalyst sets 200
-    $_->content_type('text/html') if !$_->content_type;
-    $_->headers->push_header(@{$headers}) if $headers;
-    $_->body($self->render);
-  }
-  $self->_profile(end => "=> ".Catalyst::Utils::class2classsuffix($self->catalyst_component_name)."->respond($status)");
-  return $self;
-}
-
-sub _profile {
-  my $self = shift;
-  $self->ctx->stats->profile(@_)
-    if $self->ctx->debug;
-}
-
-# Support old school Catalyst::Action::RenderView for example (
-# you probably also want the ::ArgsFromStash role).
-
-sub process {
-  my ($self, $c, @args) = @_;
-  $self->response(200, @args);
-}
-
-# helper methods
-
-sub overlay_view {
-  my ($self, $view_name, $dom_proto, @args) = @_;
-  if( (ref($dom_proto)||'') eq 'CODE') {
-    local $_ = $self->dom;
-    @args = ($dom_proto->($self->dom), @args);
-    $self->dom->overlay(sub {
-      return $self->view($view_name, @args, content=>$_)
-        ->get_processed_dom;
-    });
-  } elsif($dom_proto->can('each')) {
-    $dom_proto->each(sub {
-      return $self->overlay_view($view_name, $_, @args);
-    });
-  } else {
-    $dom_proto->overlay(sub {
-      return $self->view($view_name, @args, content=>$_)
-        ->get_processed_dom;
-    });
-  }
-  return $self;
-}
-
-sub fill_at {
-  my ($self, $id) = @_;
-  $self->dom
-    ->find($id)
-    ->each(sub { $_->fill($self) }); # nice shortcut but could be expensive
-  return $self;
-}
-
-# proxy methods 
-
-sub detach { shift->ctx->detach(@_) }
-
-sub view { shift->ctx->view(@_) }
-
-__PACKAGE__->config(
-  component_handlers => +{
-    tag => +{
-      anchor => sub {
-        my ($self, $dom, $info, %attrs) = @_;
-        my $attr = join ' ', map { "$_='$attrs{$_}'"  } grep { $_ ne 'uuid' } keys %attrs;
-        $dom->wrap("<a $attr></a>");
-      },
+sub view_components {
+  my ($class, $app, $merged_args) = @_;
+  return +{
+    view => sub {
+      my ($name, $args, %attrs) = @_;
+      $name = ucfirst $name; #Maybe too simple
+      return $app->view($name);
     },
-  },
-);
+  };
+}
+
+1;
 
 =head1 NAME
 

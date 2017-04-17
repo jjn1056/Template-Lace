@@ -30,23 +30,6 @@ sub get_handlers {
   my %handlers = ();
   foreach my $key(@ordered_component_keys) {
     my $handler = $class->get_handler($args, %{$component_info->{$key}});
-    # TODO should this be in the renderer?
-    if($handler->model_class->can('on_component_add')) {
-    my %attrs = ( 
-      $handler->renderer_class
-        ->process_attrs(
-            $handler->model_class,
-            $args->{dom}, # DOM of containing template
-            %{$component_info->{$key}{attrs}}),
-      content=>$args->{dom}->content,
-      #  model=>$self->model
-    );
-      my $renderer = $handler->create(%attrs);
-      $renderer->model->on_component_add($renderer->dom, $args->{dom});
-
-      $args->{dom}->at("[uuid='$key']")->replace($renderer->dom);
-
-    }
     $handlers{$key} = $handler;
   }
   return %handlers;
@@ -63,6 +46,24 @@ sub get_handler {
     $handler = $args->{component_handlers}{$prefix}{$name};
     return ref($handler) eq 'CODE' ? $handler->($args, %{$component_info{attrs}}): $handler;
   }
+
+  # TODO should this be in the renderer?
+  if($handler->model_class->can('on_component_add')) {
+  my %attrs = ( 
+    $handler->renderer_class
+      ->process_attrs(
+          $handler->model_class,
+          $args->{dom}, # DOM of containing template
+          %{$component_info{attrs}}),
+    content=>$args->{dom}->content,
+    #  model=>$self->model
+  );
+    my $renderer = $handler->create(%attrs);
+    $renderer->model->on_component_add($renderer->dom, $args->{dom});
+
+    $args->{dom}->at("[uuid='$component_info{key}']")->replace($renderer->dom);
+  }
+
   return $handler;
 }
 

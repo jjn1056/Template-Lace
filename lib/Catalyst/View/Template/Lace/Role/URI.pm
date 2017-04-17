@@ -1,6 +1,7 @@
 package Catalyst::View::Template::Lace::Role::URI;
 
 use Moo::Role;
+use Scalar::Util;
 
 sub uri_for { shift->ctx->uri_for(@_) }
 
@@ -8,6 +9,9 @@ sub action_for { shift->ctx->controller->action_for(@_) }
 
 sub uri {
   my ($self, $action_proto, @args) = @_;
+  return $self->ctx->uri_for($action_proto, @args)
+    if Scalar::Util::blessed($action_proto);
+
   my $controller = $self->ctx->controller;
   my $action;
   if($action_proto =~/\//) {

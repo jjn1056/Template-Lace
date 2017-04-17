@@ -5,25 +5,11 @@ use Scalar::Util;
 
 has [qw(model dom components)] => (is=>'ro', required=>1);
 
-around BUILDARGS => sub {
-  my ($orig, $class, @args) = @_;
-  my $args = $class->$orig(@args);
-  $args->{model} = $class->build_model($args);
-  return $args;
-};
-
-sub build_model {
-  my ($class, $args) = @_;
-  my $model_class = delete $args->{model_class};
-  my $model_attrs = delete $args->{model_attrs};
-  my $model = $model_class->new(%{$model_attrs});
-  return $model;
-}
-
 sub render {
   my $self = shift;
-  return $self->get_processed_dom
+  my $rendered_dom = $self->get_processed_dom
     ->to_string;
+  return $rendered_dom;
 }
 
 sub get_processed_dom {
@@ -77,13 +63,18 @@ sub process_components {
   }
 }
 
+sub prepare_component_attrs {
+  my ($self, $dom, $model, %component_info) = @_;
+  my %attrs = ( 
+    $self->process_attrs($model, $dom, %{$component_info{attrs}}),
+    content=>$dom->content,
+    model=>$model);
+  return %attrs;
+}
+
 sub process_component {
   my ($self, $dom, $component, $constructed_components, %component_info) = @_;
-  my %attrs = ( 
-    $self->process_attrs($self->model, $dom, %{$component_info{attrs}}),
-    content=>$dom->content,
-    model=>$self->model);
-
+  my %attrs = $self->prepare_component_attrs($dom, $self->model, %component_info);
   if(my $container_id = $component_info{current_container_id}) {
     # Its possible if the compoent was a 'on_component_add' type that
     # its been removed from the DOM and a Child might still have it as

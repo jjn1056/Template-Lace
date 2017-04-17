@@ -3,9 +3,8 @@ package Template::Lace::ModelRole;
 use Moo::Role;
 
 sub template {
-  my ($class, %init_args) = @_;
-  use Devel::Dwarn;
-  Dwarn \%init_args;
+  my ($class) = @_;
+  return;
 }
 
 sub prepare_dom {

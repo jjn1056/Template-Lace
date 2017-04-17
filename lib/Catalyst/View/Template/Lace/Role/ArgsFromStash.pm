@@ -2,10 +2,20 @@ package Catalyst::View::Template::Lace::Role::ArgsFromStash;
 
 use Moo::Role;
 
-around 'ACCEPT_CONTEXT', sub {
-  my ($orig, $self, $c, @args) = @_;
-  my @stash_args = %{$c->stash};
-  return $self->$orig($c, @args, @stash_args);
+around BUILDARGS => sub {
+  my ( $orig, $class, @args ) = @_;
+  my $args = $class->$orig(@args);
+  my %stash_args = $args->{ctx} ? %{$args->{ctx}->stash} : ();
+
+  use Devel::Dwarn;
+  Dwarn $args->{ctx}->stash;
+  Dwarn \%stash_args;
+
+  $args = +{
+    %$args,
+    %stash_args};
+
+  return $args;
 };
 
 1;

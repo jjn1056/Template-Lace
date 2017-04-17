@@ -1,12 +1,13 @@
-package Catalyst::View::Template::Lace::Role::PerContext;
+package Catalyst::View::Template::Lace::PerContext;
 
-use Moo::Role;
+use Moo;
+extends 'Catalyst::View::Template::Lace::Factory';
 use Scalar::Util ();
 
 around 'ACCEPT_CONTEXT', sub {
   my ($orig, $self, $c, @args) = @_;
   my $key = Scalar::Util::refaddr($self) || $self;
-  return $c->stash->{"__Pure_${key}"} ||= do {
+  return $c->stash->{"__Lace_${key}"} ||= do {
     $self->$orig($c, @args);
   };
 };
