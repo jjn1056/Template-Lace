@@ -1,4 +1,4 @@
-package Template::Lace::Role::AutoTemplate;
+package Template::Lace::Model::AutoTemplate;
 
 use Moo::Role;
 use File::Spec;
@@ -38,7 +38,7 @@ around 'template', sub {
 
 =head1 NAME
 
-Template::Lace::Role::AutoTemplate - More easily find your template
+Template::Lace::Model::AutoTemplate - More easily find your template
 
 =head1 SYNOPSIS
 

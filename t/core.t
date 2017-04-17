@@ -7,15 +7,22 @@ use_ok 'Template::Lace::Factory';
   package  Local::Template::Master;
 
   use Moo;
-  with 'Template::Lace::Model';
+  with 'Template::Lace::ModelRole';
 
   has title => (is=>'ro', required=>1);
   has body => (is=>'ro', required=>1);
 
-  sub process_dom {
+  sub prepare_dom {
+    my ($self, $dom) = @_;
+    $dom->body(sub { $_->append_content('fffffff') });
+  }
+
+  sub on_component_add {
     my ($self, $dom) = @_;
     $dom->title($self->title)
-      ->body(sub { $_->at('h1')->append($self->body) });
+      ->body(sub {
+        $_->at('h1')->append($self->body);
+      });
   }
 
   sub template {
@@ -26,7 +33,7 @@ use_ok 'Template::Lace::Factory';
         <head>
           <meta charset="utf-8" />
           <meta content="width=device-width, initial-scale=1" name="viewport" />
-          <title>Page Title</title>
+          <title>Master Title</title>
           <link href="/static/base.css" rel="stylesheet" />
           <link href="/static/index.css" rel="stylesheet"/ >
         </head>
@@ -42,18 +49,25 @@ use_ok 'Template::Lace::Factory';
   package Local::Template::User;
 
   use Moo;
-  with 'Template::Lace::Model';
+  with 'Template::Lace::ModelRole';
 
   has [qw(title story cites form)] => (is=>'ro', required=>1);
 
   sub prepare_dom {
+    my ($class, $dom) = @_;
+    $dom->body(sub {
+      $_->append_content('<meta version=1 />');
+    });
+  }
+
+  sub process_dom {
     my ($class, $dom) = @_;
     $dom->at('body')
       ->append_content('<footer>copyright 2017</footer>');
   }
 
   sub template {q[
-    <lace-master
+    <layout-master
         title=\'title:content'
         body=\'body:content'>
       <html>
@@ -61,7 +75,6 @@ use_ok 'Template::Lace::Factory';
           <title>Page Title</title>
         </head>
         <body>
-          <util-meta version=1 />
           <section id='story'>
             Story
           </section>
@@ -96,7 +109,7 @@ use_ok 'Template::Lace::Factory';
 
   use Moo;
   use DateTime;
-  with 'Template::Lace::Model';
+  with 'Template::Lace::ModelRole';
 
   has 'tz' => (is=>'ro', predicate=>'has_tz');
 
@@ -121,7 +134,7 @@ use_ok 'Template::Lace::Factory';
   package Local::Template::Form;
 
   use Moo;
-  with 'Template::Lace::Model';
+  with 'Template::Lace::ModelRole';
 
   has [qw(method action content)] => (is=>'ro', required=>1);
 
@@ -141,7 +154,7 @@ use_ok 'Template::Lace::Factory';
   package Local::Template::Input;
 
   use Moo;
-  with 'Template::Lace::Model';
+  with 'Template::Lace::ModelRole';
 
   has [qw(name label type value container)] => (is=>'ro', required=>1);
 
@@ -163,21 +176,17 @@ use_ok 'Template::Lace::Factory';
       value=>$self->value,
       name=>$self->name);
   }
-
-
 }
 
 ok my $factory = Template::Lace::Factory->new(
   model_class=>'Local::Template::User',
   component_handlers=>+{
-    util => {
-      meta => sub {
-        my ($dom, %attrs) = @_;
-        $dom->replace("<meta info-version='$attrs{version}' />");
-      },
+    layout => sub {
+      my ($name, $args, %args) = @_;
+      $name = ucfirst $name;
+      return Template::Lace::Factory->new(model_class=>"Local::Template::$name");
     },
     lace => {
-      master => Template::Lace::Factory->new(model_class=>'Local::Template::Master'),
       timestamp => Template::Lace::Factory->new(model_class=>'Local::Template::Timestamp'),
       form => Template::Lace::Factory->new(model_class=>'Local::Template::Form'),
       input => Template::Lace::Factory->new(model_class=>'Local::Template::Input'),

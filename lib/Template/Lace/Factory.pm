@@ -37,7 +37,7 @@ around BUILDARGS => sub {
   my $components_class = $class->_get_components_class($args);
   my $dom = $args->{dom} = $class->_build_dom($dom_class, $model_class);
   my $component_handlers = $args->{component_handlers};
-  $args->{components} = $class->_build_components($components_class, $dom, $component_handlers);
+  $args->{components} = $class->_build_components($components_class, $model_class, $dom, $component_handlers);
   return $args;
 };
 
@@ -72,15 +72,17 @@ around BUILDARGS => sub {
   }
 
   sub _build_components {
-    my ($class, $components_class, $dom, $component_handlers) = @_;
+    my ($class, $components_class, $model_class, $dom, $component_handlers) = @_;
     my $components = $components_class->new(
       dom => $dom,
+      model_class => $model_class,
       component_handlers => $component_handlers);
     return $components;
   }
 
 sub create {
-  my ($self, %args) = @_;
+  my ($self, @args) = @_;
+  my %args = $self->prepare_args(@args);
   my $dom = $self->create_dom(%args);
   my $renderer = $self->create_renderer(
     $self->model_class,
@@ -88,6 +90,12 @@ sub create {
     $dom,
     $self->components);
   return $renderer;
+}
+
+sub prepare_args {
+  my ($self, @args) = @_;
+  my %args = (%{$self->init_args}, @args);
+  return %args;
 }
 
 sub create_dom {

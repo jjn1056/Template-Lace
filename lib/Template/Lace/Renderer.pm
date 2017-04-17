@@ -22,7 +22,6 @@ sub build_model {
 
 sub render {
   my $self = shift;
-  $self->process_components($self->dom);
   return $self->get_processed_dom
     ->to_string;
 }
@@ -30,6 +29,7 @@ sub render {
 sub get_processed_dom {
   my $self = shift;
   my $dom = $self->dom;
+  $self->process_components($dom);
   $self->model->process_dom($dom);
   return $dom;
 } 
@@ -40,8 +40,9 @@ sub process_components {
   my %constructed_components = ();
   foreach my $id(@ordered_keys) {
     next unless $self->components->handlers->{$id}; # might skip if 'static' handler
+    next unless my $local_dom = $dom->at("[uuid='$id']");
     my $constructed_component = $self->process_component(
-      $dom->at("[uuid='$id']"), 
+      $local_dom, 
       $self->components->handlers->{$id},
       \%constructed_components,
       %{$self->components->component_info->{$id}});
@@ -73,7 +74,6 @@ sub process_components {
     });
 
     $dom->at("[uuid='$id']")->replace($processed_component);
-
   }
 }
 
@@ -85,7 +85,11 @@ sub process_component {
     model=>$self->model);
 
   if(my $container_id = $component_info{current_container_id}) {
-    $attrs{container} = $constructed_components->{$container_id}->model;
+    # Its possible if the compoent was a 'on_component_add' type that
+    # its been removed from the DOM and a Child might still have it as
+    # a container by mistake.  Possible a TODO to have a better idea.
+    $attrs{container} = $constructed_components->{$container_id}->model
+      if $constructed_components->{$container_id};
   }
 
   if(Scalar::Util::blessed $component) {
@@ -102,9 +106,13 @@ sub process_component {
       $constructed_component = $component->create(%attrs);
     }
     return $constructed_component;
-  } else {
-    $component->($dom, %attrs);
-    return;
+  } elsif(ref($component) eq 'CODE') {
+    die "Component not an object";
+    #my $new_dom = $component->($dom->content, %attrs);
+    #warn $new_dom;
+    #$dom->replace($new_dom);
+    #warn $dom;
+    #return;
   }
 }
 

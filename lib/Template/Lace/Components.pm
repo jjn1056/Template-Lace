@@ -8,8 +8,7 @@ has [qw(handlers component_info ordered_component_keys)] => (is=>'ro', required=
 around BUILDARGS => sub {
   my ($orig, $class, @args) = @_;
   my $args = $class->$orig(@args);
-  my @prefixes = $class->get_prefixes($args);
-  my %component_info = $class->get_component_info($args, @prefixes);
+  my %component_info = $class->get_component_info($args);
   my @ordered_component_keys = $class->get_component_ordered_keys(%component_info);
   my %handlers = $class->get_handlers($args, \%component_info, @ordered_component_keys);
 
@@ -20,21 +19,9 @@ around BUILDARGS => sub {
   return $args;
 };
 
-sub get_prefixes {
-  my ($class, $args) = @_;
-  my @prefixes = keys %{$args->{component_handlers}||+{}};
-  return @prefixes;
-}
-
 sub get_component_info {
-  my ($class, $args, @prefixes) = @_;
-  my %component_info = ();
-  foreach my $prefix(@prefixes) {
-    my $offset = scalar keys %component_info;
-      %component_info = (
-      %component_info,
-      $class->find_components($args->{dom}, $prefix, undef, $offset));
-  }
+  my ($class, $args) = @_;
+  my %component_info = $class->find_components($args->{dom}, $args->{component_handlers});
   return %component_info;
 }
 
@@ -43,7 +30,23 @@ sub get_handlers {
   my %handlers = ();
   foreach my $key(@ordered_component_keys) {
     my $handler = $class->get_handler($args, %{$component_info->{$key}});
-    # TODO deal with 'static' type handlers
+    # TODO should this be in the renderer?
+    if($handler->model_class->can('on_component_add')) {
+    my %attrs = ( 
+      $handler->renderer_class
+        ->process_attrs(
+            $handler->model_class,
+            $args->{dom}, # DOM of containing template
+            %{$component_info->{$key}{attrs}}),
+      content=>$args->{dom}->content,
+      #  model=>$self->model
+    );
+      my $renderer = $handler->create(%attrs);
+      $renderer->model->on_component_add($renderer->dom, $args->{dom});
+
+      $args->{dom}->at("[uuid='$key']")->replace($renderer->dom);
+
+    }
     $handlers{$key} = $handler;
   }
   return %handlers;
@@ -55,55 +58,77 @@ sub get_handler {
   my $name = $component_info{name};
   my $handler = '';
   if(ref($args->{component_handlers}{$prefix}) eq 'CODE') {
-    my %attrs = %{$component_info{attrs}};
-    $handler = $args->{component_handlers}{$prefix}->($name, %attrs);
+    $handler = $args->{component_handlers}{$prefix}->($name, $args, %{$component_info{attrs}});
   } else {
     $handler = $args->{component_handlers}{$prefix}{$name};
+    return ref($handler) eq 'CODE' ? $handler->($args, %{$component_info{attrs}}): $handler;
   }
   return $handler;
 }
 
 sub find_components {
-  my ($class, $dom, $prefix, $current_container_id, $offset, %components) = @_;
+  my ($class, $dom, $handlers, $current_container_id, %components) = @_;
   $dom->child_nodes->each(sub {
-      my ($child_dom, $num) = @_;
-      if(my $component_name = (($child_dom->tag||'') =~m/^$prefix\-(.+)?/)[0]) {
-        ## if uuid exists, that means we already processed it.
-        unless($child_dom->attr('uuid')) {
-          my $uuid = $class->generate_component_uuid($prefix);
-          $child_dom->attr({'uuid',$uuid});
-          $components{$uuid} = +{
-            order => (scalar(keys %components) + $offset),
-            key => $uuid,
-            $class->setup_component_info($prefix,
-              $current_container_id,
-              $component_name,
-              $child_dom),
-          } unless $components{$uuid};
-
-          if($current_container_id) {
-            push @{$components{$current_container_id}{children_ids}}, $uuid;
-          }
-
-          my $old_current_container_id = $current_container_id;
-          $current_container_id = $uuid;
-          
-          %components = $class->find_components($child_dom,
-            $prefix,
-            $current_container_id,
-            $offset,
-            %components);
-
-          $current_container_id = $old_current_container_id;
-        }
-    }
-    %components = $class->find_components($child_dom,
-      $prefix,
+    %components = $class->find_component(@_,
+      $handlers,
       $current_container_id,
-      $offset,
       %components);
   });
   return %components;
+}
+
+sub find_component {
+  my ($class, $child_dom, $num, $handlers, $current_container_id, %components) = @_;
+  if(my ($prefix, $component_name) = (($child_dom->tag||'') =~m/^(.+)?\-(.+)?/)) {
+    ## if uuid exists, that means we already processed it.
+    if($class->is_a_component($handlers, $prefix, $component_name)) {
+      unless($child_dom->attr('uuid')) {
+        my $uuid = $class->generate_component_uuid($prefix);
+        $child_dom->attr({'uuid',$uuid});
+        $components{$uuid} = +{
+          order => (scalar(keys %components)),
+          key => $uuid,
+          $class->setup_component_info($prefix,
+            $current_container_id,
+            $component_name,
+            $child_dom),
+        };
+
+        push @{$components{$current_container_id}{children_ids}}, $uuid
+          if $current_container_id;
+
+        my $old_current_container_id = $current_container_id;
+        $current_container_id = $uuid;
+        
+        %components = $class->find_components(
+          $child_dom,
+          $handlers,
+          $current_container_id,
+          %components);
+
+        $current_container_id = $old_current_container_id;
+      }
+    }
+  }
+  %components = $class->find_components(
+    $child_dom,
+    $handlers,
+    $current_container_id,
+    %components);
+  return %components;
+}
+
+sub is_a_component {
+  my ($class, $handlers, $prefix, $name) = @_;
+  if($handlers->{$prefix}) {
+    if(ref($handlers->{$prefix}) eq 'CODE') {
+      return 1;
+    } else {
+      return $handlers->{$prefix}{$name} ? 1:0;
+    }
+  } else {
+    return 0;
+  }
 }
 
 sub generate_component_uuid {

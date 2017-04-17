@@ -1,13 +1,18 @@
-package Template::Lace::Role::InferInitArgs;
+package Template::Lace::Factory::InferInitArgsRole;
 
 use Moo::Role;
+use Scalar::Util;
 
-around 'create_factory', sub {
-  my ($orig, $class, $args) = @_;
-  my $factory = $class->$orig($args);
-  my @fields = $class->find_fields;
-  $factory->{fields} = \@fields;
-  return $factory;
+has 'fields' => (
+  is=>'ro',
+  required=>1,
+  default=>sub {[]});
+
+around BUILDARGS => sub {
+  my ($orig, $class, @args) = @_;
+  my $args = $class->$orig(@args);
+  $args->{fields} = $class->find_fields($args->{model_class});
+  return $args;
 };
 
 # Might need something better here eventually.  Not sure
@@ -15,26 +20,27 @@ around 'create_factory', sub {
 # ones aimed to be in the render of the template.  might
 # need a 'has_content', 'has_node', etc?
 
+# Please Note obviously this requires Moose
+
 sub find_fields {
+  my ($class, $model_class) = @_;
   return map { $_->init_arg } 
     grep { $_->has_init_arg }
     grep { $_->name ne 'ctx' }
     grep { $_->name ne 'catalyst_component_name' }
-    grep { $_->name ne 'dom' }
-    grep { $_->name ne 'fragments' }
-    grep { $_->name ne 'components' }
-    (shift->meta->get_all_attributes);
+    ($model_class->meta->get_all_attributes);
 }
 
-around 'ACCEPT_CONTEXT', sub {
-  my ($orig, $factory, $c, @args) = @_;
-    return $factory->$orig($c, $factory->process_context_args(@args));
+around 'prepare_args', sub {
+  my ($orig, $self, @args) = @_;
+  my %args = $self->infer_args_from(@args);
+  return $self->$orig(%args);
 };
 
-sub process_context_args {
-  my $factory = shift;
+sub infer_args_from {
+  my $self = shift;
   my %args = ();
-  my @fields = @{$factory->{fields}};
+  my @fields = @{$self->fields};
 
   # If the first argment is an object or a hashref then
   # we inspect it and unroll any matching fields.  This
@@ -46,11 +52,6 @@ sub process_context_args {
     %args = map { $_ => $init_object->$_ } 
       grep { $init_object->can($_) }
       @fields;
-  } elsif((ref($_[0])||'') eq 'HASH') {
-    my $init_hashref = shift @_;
-    %args = map { $_ => $init_hashref->{$_} }
-      grep { exists $init_hashref->{$_} } 
-      @fields;
   }
 
   return (%args, @_);
@@ -60,7 +61,7 @@ sub process_context_args {
 
 =head1 NAME
 
-Template::Lace::Role::InferInitArgs - fill init args by inspecting an object
+Template::Lace::Factory::InferInitArgsRole - fill init args by inspecting an object
 
 =head1 SYNOPSIS
 
