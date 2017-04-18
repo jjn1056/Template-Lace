@@ -6,15 +6,9 @@ around BUILDARGS => sub {
   my ( $orig, $class, @args ) = @_;
   my $args = $class->$orig(@args);
   my %stash_args = $args->{ctx} ? %{$args->{ctx}->stash} : ();
-
-  use Devel::Dwarn;
-  Dwarn $args->{ctx}->stash;
-  Dwarn \%stash_args;
-
   $args = +{
     %$args,
     %stash_args};
-
   return $args;
 };
 

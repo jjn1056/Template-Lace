@@ -37,7 +37,11 @@ around BUILDARGS => sub {
   my $components_class = $class->_get_components_class($args);
   my $dom = $args->{dom} = $class->_build_dom($dom_class, $model_class);
   my $component_handlers = $args->{component_handlers};
-  $args->{components} = $class->_build_components($components_class, $model_class, $dom, $component_handlers);
+  $args->{components} = $class->_build_components(
+    $components_class,
+    $model_class,
+    $dom,
+    $component_handlers);
   return $args;
 };
 

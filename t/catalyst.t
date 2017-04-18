@@ -13,6 +13,11 @@ use Mojo::DOM58;
   warn $res->content;
 }
 
+{
+  ok my $res = request '/user';
+  ok my $dom = Mojo::DOM58->new($res->content);
+  warn $res->content;
+}
 done_testing;
 
 __END__
@@ -25,9 +30,5 @@ __END__
   warn $res->content;
 }
 
-{
-  ok my $res = request '/user';
-  ok my $dom = Mojo::DOM58->new($res->content);
-  warn $res->content;
-}
+
 

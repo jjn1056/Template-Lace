@@ -4,8 +4,6 @@ our $VERSION = '0.001';
 
 use Moo;
 use Module::Runtime;
-
-use Catalyst::View::Template::Lace::Factory;
 use Catalyst::View::Template::Lace::Renderer;
 
 extends 'Catalyst::View';
@@ -17,14 +15,11 @@ sub COMPONENT {
     (delete($merged_args->{component_handlers})||+{}),
     $class->view_components($app, $merged_args));
 
-  my $local_renderer = "${class}::Renderer";
-  eval "package $local_renderer; use Moo; extends 'Catalyst::View::Template::Lace::Renderer'";
-
   my $adaptor = $args->{adaptor} || 'Catalyst::View::Template::Lace::Factory';
 
   return Module::Runtime::use_module($adaptor)->new(
     model_class=>$class,
-    renderer_class=>$local_renderer,
+    renderer_class=>'Catalyst::View::Template::Lace::Renderer',
     component_handlers=>$merged_component_handlers,
     init_args=>+{ %$merged_args, app=>$app },
   );

@@ -9,7 +9,18 @@ has css => (is=>'ro', required=>1);
 has meta => (is=>'ro', required=>1);
 has body => (is=>'ro', required=>1);
 
+# This can be called either once at setup time or
+# dynamically per request.
+
 sub on_component_add {
+  my ($self, $dom) = @_;
+  $dom->title($self->title)
+    ->head(sub { $_->append_content($self->css->join) })
+    ->head(sub { $_->prepend_content($self->meta->join) })
+    ->body(sub { $_->at('h1')->append($self->body) });
+}
+
+sub process_dom {
   my ($self, $dom) = @_;
   $dom->title($self->title)
     ->head(sub { $_->append_content($self->css->join) })

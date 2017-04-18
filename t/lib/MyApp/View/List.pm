@@ -14,7 +14,4 @@ sub process_dom {
   $dom->ol('#todos', $self->items);
 }
 
-__PACKAGE__->config(
-  returns_status=>[200],
-);
-
+1;
