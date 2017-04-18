@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package Template::Lace::DOM;
 
-use base 'Mojo::DOM';
+use base 'Mojo::DOM58';
 use Storable ();
 use Scalar::Util;
 
