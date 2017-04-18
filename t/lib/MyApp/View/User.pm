@@ -40,6 +40,10 @@ sub process_dom {
 
   sub create {
     my ($self, %attrs) = @_;
+    # %attrs has ctx, model, content as automatic
+    # as well as anything you setup as atttributes (like
+    # in this case "href".  It wil be processed to resolve
+    # as well.
     return bless \%attrs, ref($self);
   }
 
