@@ -95,7 +95,7 @@ use_ok 'Template::Lace::Factory';
           <lace-timestamp tz='America/Chicago'/>
         </body>
       </html>
-    </lace-master>
+    </layout-master>
   ]}
 
   sub process_dom {
