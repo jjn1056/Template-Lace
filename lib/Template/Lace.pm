@@ -6,54 +6,13 @@ our $VERSION = '0.001';
 
 =head1 NAME
 
-Template::Lace - Logic-less and strongly typed templates, with components
+Template::Lace - Logic-less, strongly typed templates, and componentized HTML templates.
 
 =head1 SYNOPSIS
 
-    TBD
-
-=head1 DISCLAIMER
-
-L<Template::Lace> is a toolkit for building HTML pages using logic-less and componentized
-templates.  As such this distribution is currently not aimed at standalone use but rather
-exists as all the reusable bits that fell out when I refactored L<Catalyst::View::Template::Lace>.
-Currently this toolkit then exists to support the L<Catalyst> View and as a result documentation
-here is high level and API level.  If you want to integrate L<Template::Lace> into other
-web frameworks you might wish to review L<Catalyst::View::Template::Lace> for a possible
-approach.  Ideas about how to make this distribution more usefully stand alone are quite welcomed!
-
-B<NOTE> Since this is still under heavy development and review I reserve the right to make
-breaking changes, or to conclude the approach is fundementally flawed and exit the project. Do
-not use this code in production aimed systems unless you are skilled enough to take on that
-risk and responsibility.
-
-=head1 DESCRIPTION
-
-L<Template::Lace> is a toolkit that makes it possible to bind HTML templates to plain old Perl
-classes as long as they provide a defined interface (provided by L<Template::Lace::ModelRole>
-but you don't have to use L<Moo> as long as you conform to the minimal interface). These
-templates are fully HTML markup only; they contain no display logic, only valid HTML and component
-declarations.  We use L<Template::Lace::DOM> (which is a subclass of L<Mojo::DOM58>) to alter the 
-template for presentation at request time.  L<Template::Lace::DOM> provides an API to transform
-the template into HTML using instance data and method provided by the class.
-
-When you have a Perl class that does L<Template::Lace::ModelRole> we call that a 'Model' class
-Here's an example of a very simple Model class:
-
-    package  MyApp::Template::User;
-
-    use Moo;
-    with 'Template::Lace::ModelRole';
+A Template Model:
 
     has [qw/age name motto/] => (is=>'ro', required=>1);
-
-    sub process_dom {
-      my ($self, $dom) = @_;
-      $dom->dl('#user', +{
-        age=>$self->age,
-        name=>$self->name,
-        motto=>$self->motto});
-    }
 
     sub template { q[
       <html>
@@ -72,6 +31,123 @@ Here's an example of a very simple Model class:
           </body>
       </html>
     ]}
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      $dom->dl('#user', +{
+        age=>$self->age,
+        name=>$self->name,
+        motto=>$self->motto});
+    }
+
+    1;
+
+A Factory and Renderer
+
+    my $factory = Template::Lace::Factory->new(
+      model_class=>'MyApp::Template::User');
+
+    my $renderer = $factory->create(
+      age=>42,
+      name=>'John',
+      motto=>'Life in the Fast Lane!');
+
+    print $renderer->render;
+
+Outputs:
+
+    <html>
+      <head>
+        <title>
+          User Info
+        </title>
+      </head>
+      <body id="body">
+        <dl id="user">
+          <dt>
+            Name
+          </dt>
+          <dd id="name">
+            John
+          </dd>
+          <dt>
+            Age
+          </dt>
+          <dd id="age">
+            42
+          </dd>
+          <dt>
+            Motto
+          </dt>
+          <dd id="motto">
+            Why Not?
+          </dd>
+        </dl>
+      </body>
+    </html>
+
+=head1 DISCLAIMER
+
+L<Template::Lace> is a toolkit for building HTML pages using logic-less and componentized
+templates.  As such this distribution is currently not aimed at standalone use but rather
+exists as all the reusable bits that fell out when I refactored L<Catalyst::View::Template::Lace>.
+Currently this toolkit then exists to support the L<Catalyst> View and as a result documentation
+here is high level and API level.  If you want to integrate L<Template::Lace> into other
+web frameworks you might wish to review L<Catalyst::View::Template::Lace> for a possible
+approach.  Ideas about how to make this distribution more usefully stand alone are quite welcomed!
+Examples given here are probably more verbose than it would be if using this under a web
+framework like L<Catalyst> (see L<Catalyst::View::Template::Lace>).
+
+B<NOTE> Since this is still under heavy development and review I reserve the right to make
+breaking changes, or to conclude the approach is fundementally flawed and exit the project. Do
+not use this code in production aimed systems unless you are skilled enough to take on that
+risk and responsibility.
+
+=head1 DESCRIPTION
+
+L<Template::Lace> is a toolkit that makes it possible to bind HTML templates to plain old Perl
+classes as long as they provide a defined interface (provided by L<Template::Lace::ModelRole>
+but you don't have to use L<Moo> as long as you conform to the minimal interface). These
+templates are fully HTML markup only; they contain no display logic, only valid HTML and component
+declarations.  We use L<Template::Lace::DOM> (which is a subclass of L<Mojo::DOM58>) to alter the 
+template for presentation at request time.  L<Template::Lace::DOM> provides an API to transform
+the template into HTML using instance data and methods provided by the class.
+
+When you have a Perl class that does L<Template::Lace::ModelRole> we call that a 'Model' class
+Here's an example of a very simple Model class:
+
+    package  MyApp::Template::User;
+
+    use Moo;
+    with 'Template::Lace::ModelRole';
+
+    has [qw/age name motto/] => (is=>'ro', required=>1);
+
+    sub template { q[
+      <html>
+        <head>
+          <title>User Info</title>
+        </head>
+          <body>
+            <dl id='user'>
+              <dt>Name</dt>
+              <dd id='name'> -NAME- </dd>
+              <dt>Age</dt>
+              <dd id='age'> -AGE- </dd>
+              <dt>Motto</dt>
+              <dd id='motto'> -MOTTO- </dd>
+            </dl>
+          </body>
+      </html>
+    ]}
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      $dom->dl('#user', +{
+        age=>$self->age,
+        name=>$self->name,
+        motto=>$self->motto});
+    }
 
     1;
 
@@ -181,7 +257,7 @@ at this point will become cloned for all subsequent requests.  For example:
       $dom->ol('#todos', $self->items);
     }
 
-In this case we'd add a startup timestand to the header area of the template, which might be
+In this case we'd add a startup timestanp to the header area of the template, which might be
 useful for debugging for example.
 
 This example also used the role L<Template::Lace::Model::AutoTemplate> which allows you to
@@ -239,7 +315,7 @@ ways your attributes will be processed:
 
 =item literal values
 
-Example: <prefix-name attr='1994'/>
+Example: <prefix-name attr='1984'/>
 
 When a value is a simple literal that value is passed as is.
 
@@ -360,11 +436,6 @@ the user if they submit bad items).
 
     has [qw/form items copywrite/] => (is=>'ro', required=>1);
 
-    sub process_dom {
-      my ($self, $dom) = @_;
-      $dom->ol('#todos', $self->items);
-    }
-
     sub template {q[
       <view-master title=\'title:content'
           css=\'@link'
@@ -391,6 +462,13 @@ the user if they submit bad items).
         </html>
       </view-master>
     ]}
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      $dom->ol('#todos', $self->items);
+    }
+
+    1;
 
 So this Model declares a template with four components: C<view-master>, C<view-form>, C<view-input>,
 and C<view-footer>.  It also declares a C<process_dom> method to populate the C<ol> at id 'todos'.
@@ -474,9 +552,10 @@ This 'view-footer' example is probably the closest thing to a traditional 'inclu
 'partial' template as you might have used in other template systems.  For an include this
 simple it probably seems like a lot more work and code.  However as you will see the
 component system is significantly more powerful than this, and even with an example this
-simple you get some powerful benefits including a strong separate between HTML market
+simple you get some powerful benefits including a strong separate between HTML markup
 and display logic, the ability to take full advantage of the power of Perl and a strongly
-typed interface between your component at the world.  Lets look at a more complex component
+typed interface between your component at the world.  These are all things that I believe
+make your code more maintainable and les buggy.  Lets look at a more complex component,
 the 'view-form' component:
 
     package  MyApp::View::Form;
@@ -586,8 +665,148 @@ how the 'view-input' component works:
 
     1;
 
+Here I think you start to get the picture of how components can organize complex
+display logic without making a messy template.  This component easily encapsulates
+many of the parts of an input form, including label setup, value, type, etc.  It
+also displays any form errors (for example generated by L<HTML::Formhandler> during
+a POST) or removes the HTML markup around errors.  A simple include in TT would
+have to contain loops and conditionals, and leave you with a template that was
+not tidy at all.  Additionally it would be trivial to make a subclass of this
+template that changes the markup, adds new features or behaviors.  For example
+you could have a subclass that added CSS markup from one of the popular CSS
+frameworks.  Or you could add javascript to make the form AJAXy.  Example:
 
--- advananced simple modesl that do create and process_dom
+    package MyApp::Role::View::StyledInput
+
+    use Moo;
+
+    around 'prepare_dom', sub {
+      my ($orig, $self, $dom, @args) = @_;
+      $dom->at('input')
+        ->attr(class=>'large-input');
+      return $self->$orig($dom, @args);
+    };
+
+You could that add this role to any input type component.  Basically the full power
+of Perl is available!
+
+Finally, lets look at the 'view-master' component, which is a type of layout component
+to add common header / footer information to your page (a standard enough thing to do
+when building a website:
+
+
+    package  MyApp::View::Master;
+
+    use Moo;
+    with 'Template::Lace::ModelRole';
+
+    has title => (is=>'ro', required=>1);
+    has css => (is=>'ro', required=>1);
+    has meta => (is=>'ro', required=>1);
+    has body => (is=>'ro', required=>1);
+
+    sub on_component_add {
+    my ($self, $dom) = @_;
+    $dom->title($self->title)
+      ->head(sub { $_->append_content($self->css->join) })
+      ->head(sub { $_->prepend_content($self->meta->join) })
+      ->body(sub { $_->at('h1')->append($self->body) })
+      ->at('#header')
+        ->content($self->title);
+    }
+
+    sub template {
+    my $class = shift;
+    return q[
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta content="width=device-width, initial-scale=1" name="viewport" />
+          <title>Page Title</title>
+          <link href="/static/base.css" rel="stylesheet" />
+          <link href="/static/index.css" rel="stylesheet"/ >
+        </head>
+        <body id="body">
+          <h1 id="header">Intro</h1>
+        </body>
+      </html>        
+      ];
+    }
+
+    1;
+
+This is a type of component intended to perform layout work for you.  In this case we are creating a common
+header and footer and some internal market.  The values for it attributes come not from the model class
+but from the contained DOM itself.  Lets look again at the top of the component declaration:
+
+    <view-master title=\'title:content'
+        css=\'@link'
+        meta=\'@meta'
+        body=\'body:content'>
+
+So four attributes, all coming from the DOM associated with the 'content' area of this component.  We
+grab the content of the title tag and the content of the HTML body tag, as well as the collection (if
+any) of the link takes (for css style sheets) and any template specific meta tags.
+
+If you are looking carefully you have noticed instead of a 'process_dom' method we have a 'on_component_add' method.  We could do this with 'process_dom' but that method runs for every request and since this overlay contains no dynamic request bound information its more efficient to run it once ('on_component_add' runs once at setup time; the change it makes becomes part of the base DOM which is cloned for every following request).  So 'on_component_add' is like 'prepare_dom' except it allows a component to modify the DOM of the view that is calling it instead of its own.
+
+Here's a sample of the actual result, rendering all the components (you can peek at the repository which has all the code for these examples to see how it all works)
+
+    <html>
+      <head>
+        <meta startup="Fri Mar 31 08:43:24 2017">
+        <meta charset="utf-8">
+        <meta content="width=device-width, initial-scale=1" name="viewport">
+        <title>
+          Things To Do
+        </title>
+        <link href="/static/base.css" rel="stylesheet" type="text/css">
+        <link href="/css/input.min.css" rel="stylesheet" type="text/css">
+        <script src="/js/input.min.js" type="text/javascript"></script>
+      </head>
+      <body id="body">
+        <h1>
+          Things To Do
+        </h1>
+        <form id="newtodo">
+          <div class="field">
+            <label for="item">Todo</label>
+              <input id="item" name="item" type="text" value="milk">
+          </div>
+          <div class="ui error message">
+            <ol class="errors">
+              <li>too short
+              </li>
+              <li>too similar it existing item
+              </li>
+            </ol>
+          </div>
+         </form>
+        <ol id="todos">
+          <li>Buy Milk
+          </li>
+          <li>Walk Dog
+          </li>
+        </ol>
+        <section id="footer">
+          <hr>
+          <p id="copy">
+            copyright 2017
+          </p>
+        </section>
+      </body>
+    </html>
+
+So even though we have a page with a lot happening, we can write a model class that focuses
+just on the primary task (display the list of Todos) and let components handle the other work.
+A complex template can be logically divided into clear chunks, each dedicated to one function
+and each with a clearly defined, strongly typed interface.  I believe this leads to well
+organized and concise templates that are maintainable over the long term.
+
+You can review the documentation for each of the main classes in this distribution, and/or
+review the test cases for more examples.  Or if you want to use this for building web sites
+immediately, see L<Catalyst::View::Template::Lace> as you quickest path.
 
 =head1 IMPORTANT NOTE REGARDING VALID HTML
 
@@ -600,6 +819,12 @@ surprising results in your output.
 John Napiorkowski L<email:jjnapiork@cpan.org>
   
 =head1 SEE ALSO
+
+L<Template::Lace::Factory>, L<Template::Lace::Component>, L<Template::Lace::Renderer>,
+L<Template::Lace::DOM>, L<Template::Lace::ModelRole>, L<Template::Lace::Model::AutoTemplate>,
+and L<Template::Lace::Factory::InferInitArgsRole>
+
+Other classes defined in this distribution
  
 L<Mojo::DOM58>, L<HTML::Zoom>.  Both of these are approaches to programmatically examining and
 altering a DOM.
