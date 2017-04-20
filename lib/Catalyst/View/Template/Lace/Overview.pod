@@ -77,7 +77,7 @@ Here you can see we are calling the view and passing it the required attributes.
       <body id="body">
         <dl id="user">
           <dt>
-            <a href="/profile/john">Name</a>
+            Name
           </dt>
           <dd id="name">
             John
@@ -98,7 +98,7 @@ Here you can see we are calling the view and passing it the required attributes.
       </body>
     </html>
 
-This is the bare basics of Template::Lace but there's a ton of other features and ways to better manage the complexity of your display logic.  I'm going to leave you with a short taste of what a more complex template with components might look like.  Here's a template that contains a form with an input controls, as well as a footer, timestamp and 'master' layout.  Its job is to display a list of Todo items.
+This is the bare basics of Template::Lace but there's a ton of other features and ways to better manage the complexity of your display logic.  I'm going to leave you with a short taste of what a more complex template with components might look like.  Here's a template that contains a form with an input controls, as well as a footer and 'master' layout.  Its job is to display a list of Todo items.
 
 ($HOME/lib/MyApp/View/list.html):
 
@@ -129,7 +129,7 @@ This is the bare basics of Template::Lace but there's a ton of other features an
 
 The main view class for this template is just handling the bit where we layout the Todo items.  Everything else on this page is delegated to a component.  Here's the class:
 
-    package  MyApp::View::List;
+package  MyApp::View::List;
 
     use Moo;
     extends 'Catalyst::View::Template::Lace';
