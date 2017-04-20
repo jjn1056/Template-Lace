@@ -20,13 +20,18 @@ exists as all the reusable bits that fell out when I refactored L<Catalyst::View
 Currently this toolkit then exists to support the L<Catalyst> View and as a result documentation
 here is high level and API level.  If you want to integrate L<Template::Lace> into other
 web frameworks you might wish to review L<Catalyst::View::Template::Lace> for a possible
-approach.
+approach.  Ideas about how to make this distribution more usefully stand alone are quite welcomed!
+
+B<NOTE> Since this is still under heavy development and review I reserve the right to make
+breaking changes, or to conclude the approach is fundementally flawed and exit the project. Do
+not use this code in production aimed systems unless you are skilled enough to take on that
+risk and responsibility.
 
 =head1 DESCRIPTION
 
 L<Template::Lace> is a toolkit that makes it possible to bind HTML templates to plain old Perl
 classes as long as they provide a defined interface (provided by L<Template::Lace::ModelRole>
-but again you don't have to use L<Moo> as long as you conform to the minimal interface). These
+but you don't have to use L<Moo> as long as you conform to the minimal interface). These
 templates are fully HTML markup only; they contain no display logic, only valid HTML and component
 declarations.  We use L<Template::Lace::DOM> (which is a subclass of L<Mojo::DOM58>) to alter the 
 template for presentation at request time.  L<Template::Lace::DOM> provides an API to transform
@@ -86,7 +91,7 @@ classes, L<Template::Lace::Factory> and L<Template::Lace::Renderer> (with a tag 
 L<Template::Lace::Components> should your template contain components; to be discussed later).
 
 L<Template::Lace::Factory> wraps your model class and inspects it to create an initial DOM representation
-of the template (as well as it prepares a component hierarchy, should you have components).  Most
+of the template (as well as prepare a component hierarchy, should you have components).  Most
 simply it looks like this:
 
     my $factory = Template::Lace::Factory->new(
@@ -100,6 +105,9 @@ L<Template::Lace::Renderer> which is wrapping the model:
       age=>42,
       name=>'John',
       motto=>'Life in the Fast Lane!');
+
+    $renderer->model; # this is the actual instance of MyApp::Template::User via
+                      # the provided args to ->create.
 
 Those initial arguments are passed to the model and used to create an instance of the model.  But the
 wrapping C<$renderer> exposes methods that are used to do the actual transformation.  For example
@@ -222,7 +230,7 @@ And another example:
 
 Canonically a component is a tag in the form of '$prefix-$name' (like <prefix-name ...>)
 and typically will contain HTML attributes (like 'attr1="Literal"') and it may also
-have content, as in "<lace-form><input type="submit"/></lace-form>".  When you render
+have content, as in "<lace-form><input id='content' type="submit"/></lace-form>".  When you render
 a template containing components, any HTML attributes will be converted to a real value
 and passed to the component as initialization arguments.  There are three different
 ways your attributes will be processed:
@@ -292,10 +300,10 @@ If the component has content as in the following example
 
 That content will be sent to the component under the 'content' attribute
 
-=item parent
+=item container 
 
 If the component is a subcomponent it will receive the instance model of its
-parent as the 'parent' attribute
+parent as the 'container' attribute.
 
 =item model
 
@@ -327,7 +335,7 @@ the Factory at the time you construct it:
 
 Components are added as a hashref of data associated with the 'component_handlers'
 initialization argument for the class L<Template::Lace::Factory>.  You can either
-attach a component to a full 'prefix-name' pair, as in the exmples for 'form' and
+attach a component to a full 'prefix-name' pair, as in the examples for 'form' and
 'input', or you can create a component 'generator' for an entire prefix by associating
 the prefix with a coderef which is responsible for returning a component based on the
 actual name.  
@@ -342,7 +350,241 @@ the template we render each component and replace the full component node with t
 of the rendering.
 
 Here's a full example of a template that is a TODO list which contains a list of 
-items 'TODO' as well as a form 
+items 'TODO' as well as a form to add new items (with the ability to give error feedback to
+the user if they submit bad items).
+
+    package MyApp::Template::List
+
+    use Moo;
+    with 'Template::Lace::ModelRole';
+
+    has [qw/form items copywrite/] => (is=>'ro', required=>1);
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      $dom->ol('#todos', $self->items);
+    }
+
+    sub template {q[
+      <view-master title=\'title:content'
+          css=\'@link'
+          meta=\'@meta'
+          body=\'body:content'>
+        <html>
+          <head>
+            <title>Things To Do</title>
+            <link href="/static/summary.css" rel="stylesheet"/>
+            <link href="/static/core.css" rel="stylesheet"/>
+          </head>
+          <body>
+            <view-form id="newtodo" fif='$.form.fif' errors='$.form.errors'>
+              <view-input id='item'
+                  label="Todo"
+                  name="item"
+                  type="text" />
+            </view-form>
+            <ol id='todos'>
+              <li> -What To Do?- </li>
+            </ol>
+            <view-footer copydate='$.copywrite' />
+          </body>
+        </html>
+      </view-master>
+    ]}
+
+So this Model declares a template with four components: C<view-master>, C<view-form>, C<view-input>,
+and C<view-footer>.  It also declares a C<process_dom> method to populate the C<ol> at id 'todos'.
+The C<process_dom> should be straight forward, the C<ol> helper is smart enough to populate the
+list for you if you pass it an array reference.  Component wise we have a hierarchy that looks like
+this:
+
+    view-master
+        view-form
+            view-input
+      view-footer
+
+And we could create a C<$factory> for this model with a setup like:
+
+    my $factory = Template::Lace::Factory->new(
+      model_class=>'MyApp::Template::List',
+      component_handlers=>+{
+         view => {
+          master => Template::Lace::Factory->new(model_class=>'MyApp::Template::Form'),
+          form => Template::Lace::Factory->new(model_class=>'MyApp::Template::Form'),
+          input => Template::Lace::Factory->new(model_class=>'MyApp::Template::Input'),
+          footer => Template::Lace::Factory->new(model_class=>'MyApp::Template::Form'), 
+        },
+      },
+    );
+
+B<NOTE> If you have a strong convention between your component name and the Model class
+it would be easy to take advantage of the prefix handler code reference option to automatically
+generate your components as needed.  Example given is for ease of understanding!
+
+The 'view-footer' component is the most simple so lets look at that first:
+
+    package  MyApp::View::Footer;
+
+    use Moo;
+
+    with 'Template::Lace::ModelRole';
+
+    has copydate => (is=>'ro', required=>1);
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      $dom->at('#copy')
+        ->append_content($self->copydate);
+    }
+
+    sub template {
+      my $class = shift;
+      return q[
+        <section id='footer'>
+          <hr/>
+          <p id='copy'>copyright </p>
+        </section>
+      ];
+    }
+
+    1;
+
+When we call:
+
+    my $renderer = $factory->create(copywrite=>2017, ...);
+    
+That creates an instance of C<MyApp::Template::List> with the attribute 'copywrite' set to '2017'.
+During this setup, we walk the component hierarchy and when we get to the 'view-footer' component
+we call "->create(copydate=>$renderer->model->copywrite)" on it to create an instance of that
+component. Then when we call:
+
+    my $html_string = $renderer->render;
+
+We call "->render" on that component instance and replace the component node with the new
+string.  In this case that string would look like:
+
+    <section id='footer'>
+      <hr/>
+      <p id='copy'>copyright 2017</p>
+    </section>
+
+and that would replace the entire node "<view-footer copydate='$.copywrite' />".
+
+This 'view-footer' example is probably the closest thing to a traditional 'include' or
+'partial' template as you might have used in other template systems.  For an include this
+simple it probably seems like a lot more work and code.  However as you will see the
+component system is significantly more powerful than this, and even with an example this
+simple you get some powerful benefits including a strong separate between HTML market
+and display logic, the ability to take full advantage of the power of Perl and a strongly
+typed interface between your component at the world.  Lets look at a more complex component
+the 'view-form' component:
+
+    package  MyApp::View::Form;
+
+    use Moo;
+    with 'Template::Lace::ModelRole';
+
+
+    has [qw/id fif errors content/] => (is=>'ro', required=>0);
+
+    sub create_child {
+      my ($self, $child_factory, %init_args) = @_;
+      my $value = $self->fif->{$init_args{name}};
+      my @errors = @{$self->errors->{$init_args{name}} ||[]};
+      my $child_component = $child_factory->create(
+        %init_args, 
+        value => $value,
+        errors => \@errors);
+      return $child_component;
+    }
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      $dom->at('form')
+        ->attr(id=>$self->id)
+        ->content($self->content);      
+    }
+
+    sub template {
+      my $class = shift;
+      return q[<form></form>];
+    }
+
+So I deliberately made a more complex example here so you could see one of the ways
+that parent / child interaction can occur when there is a component hierarchy.  Here
+we are letting the parent 'view-form' component be responsible for creating its own
+child components.  We are doing this so that the 'view-form' component can give information
+about state and any errors to any input type child components.  We could also have
+had the children reach into the 'view-form' component to get that information (since
+each child does have access to the parent via the 'container' attribute, or we could have
+simple pulled it directly from the Model class via an html attribute, for example:
+
+    <view-input id='item'
+        label="Todo"
+        name="item"
+        type="text"
+        fif="$.form.fif.item"
+        errors="$.form.errors.item"/>
+
+This part of the system is under active development and consideration, its likely
+we haven't worked out all the best ways this needs to work, or built in all the API
+necessary.  Discussion welcomed!
+
+This component also demonstrates how a component that wraps content might work, since it
+collections that content via the 'content' attribute and inserts into into its own
+local DOM (via ->content($self->content) using L<Template::Lace::DOM>.  Lets see the
+how the 'view-input' component works:
+
+    package  MyApp::View::Input;
+
+    use Moo;
+    with 'Template::Lace::ModelRole';
+
+    has [qw/id label name type value errors/] => (is=>'ro');
+
+    sub process_dom {
+      my ($self, $dom) = @_;
+      
+      # Set Label content
+      $dom->at('label')
+        ->content($self->label)
+        ->attr(for=>$self->name);
+
+      # Set Input attributes
+      $dom->at('input')->attr(
+        type=>$self->type,
+        value=>$self->value,
+        id=>$self->id,
+        name=>$self->name);
+
+      # Set Errors or remove error block
+      if($self->errors) {
+        $dom->ol('.errors', $self->errors);
+      } else {
+        $dom->at("div.error")->remove;
+      }
+    }
+
+    sub template {
+      my $class = shift;
+      return q[
+        <link href="css/main.css" />
+        <style id="min">
+          div { border: 1px }
+        </style>
+        <div class="field">
+          <label>LABEL</label>
+          <input />
+        </div>
+        <div class="ui error message">
+          <ol class='errors'>
+            <li>ERROR</li>
+          </ol>
+        </div>
+      ];
+    }
+
+    1;
 
 
 -- advananced simple modesl that do create and process_dom
