@@ -67,11 +67,11 @@ Template::Lace::Factory::InferInitArgsRole - fill init args by inspecting an obj
 
 Create a template class:
 
-   package  MyApp::View::User;
+   package  MyApp::Template::User;
 
     use Moo;
-    extends 'Catalyst::View::Template::Lace';
-    with 'Catalyst::View::Template::Lace::Role::ArgsFromStash',
+    with 'Template::Lace::ModelRole',
+    'Template::Lace::Factory::InferInitArgsRole',
 
     has [qw/age name motto/] => (is=>'ro', required=>1);
 
@@ -106,23 +106,74 @@ Create a template class:
 
 Create an object;
 
+    package MyApp::User;
 
-Create and render an instance:
+    has [qw/age name motto/] => (is=>'ro', required=>1);
 
-    my $factory = MyApp::Template::List
-      ->create_factory;
+    1;
 
-    my $html = $factory->create(items=>['Walk dogs', 'Buy Milk'])
-      ->render;
+    my $user = MyApp::User->new(age=>42,name=>'Joe', motto=>'Why?');
+
+Use the object to create a render instance for your template:
+
+    my $factory = Template::Lace::Factory->new(
+      model_class=>'MyApp::Template::User');
+
+    my $renderer = $factory->create($user);
+
+    print $renderer->render;
+
+Outputs:
+
+    <html>
+      <head>
+        <title>
+          User Info
+        </title>
+      </head>
+      <body id="body">
+        <dl id="user">
+          <dt>
+            Name
+          </dt>
+          <dd id="name">
+            Joe
+          </dd>
+          <dt>
+            Age
+          </dt>
+          <dd id="age">
+            42
+          </dd>
+          <dt>
+            Motto
+          </dt>
+          <dd id="motto">
+            Why?
+          </dd>
+        </dl>
+      </body>
+    </html>
 
 =head1 DESCRIPTION
 
 Allows you to fill your template arguments from an object, possibily saving you some
 tedious typing (at the possible expense of understanding).
 
+In the (often likely) case that there is great interface compatibility between your
+business objects and template models, this role can save you the effort of writing a lot
+of tendious mapping code.  Can save a lot when the interfaces contain a ton of fields.
+However you are reducing possible comprehension as well as introducing a possible evil
+interface binding into your code.  The choice is yours :)
+
+B<NOTE> This works by using L<Moose> and assumes your classes are written with L<Moo>
+or L<Moose>.  This means you are adding a dependency on L<Moose> into your project
+that you may not want.  You will also inflate a meta object on your L<Moo> class which
+may have some performance and memory usage implications.
+
 =head1 SEE ALSO
  
-L<Template::Pure>.
+L<Template::Lace>.
 
 =head1 AUTHOR
 

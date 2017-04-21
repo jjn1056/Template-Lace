@@ -47,8 +47,8 @@ Create a template class at path $HOME/lib/MyApp/Template/List.pm
     package  MyApp::Template::List;
 
     use Moo;
-    extends 'Template::Lace';
-    with 'Template::Lace::Role::Pretty',
+    with 'Template::Lace::ModelRole',
+      'Template::Lace::Model::AutoTemplate';
 
     has 'items' => (is=>'ro', required=>1);
 
@@ -88,12 +88,14 @@ class file name, replace the '.pm' with '.html' and lowercase the name.  For exa
 if you have a class 'MyApp::Templates::User', at '$HOME/lib/MyApp/Templates/User.pm'
 we'd expect to find a file template at '$HOME/lib/MyApp/Templates/user.html'.
 
-You can override the method 'get_path_to_template' if you prefer a different lookup
+Since its generally not great practice to rely on mixed case alone to distinguish
+your filenames this convention should be acceptable.  Your results may vary. You can
+override the method 'get_path_to_template' if you prefer a different lookup
 convention (or even hardcode a particular path).
 
 =head1 SEE ALSO
  
-L<Template::Pure>.
+L<Template::Lace>.
 
 =head1 AUTHOR
 
