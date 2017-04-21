@@ -209,3 +209,30 @@ sub get_component_ordered_keys {
 }
 
 1;
+
+=head1 NAME
+
+Template::Lace::Components - Prepares a Component Hierarchy from a DOM
+
+=head1 SYNOPSIS
+
+    TBD
+
+=head1 DESCRIPTION
+
+Use by L<Template::Lace::Factory> to create a component hierarchy for a DOM
+and from the defined component_mappings.
+
+=head1 SEE ALSO
+ 
+L<Template::Lace>.
+
+=head1 AUTHOR
+
+Please See L<Template::Lace> for authorship and contributor information.
+  
+=head1 COPYRIGHT & LICENSE
+ 
+Please see L<Template::Lace> for copyright and license information.
+
+=cut 

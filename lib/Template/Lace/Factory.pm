@@ -127,7 +127,30 @@ sub create_renderer {
   return $renderer;
 }
 
-
-
-
 1;
+
+=head1 NAME
+
+Template::Lace::Factory - Create templates
+
+=head1 SYNOPSIS
+
+    TBD
+
+=head1 DESCRIPTION
+
+Produces Templates from a model.
+
+=head1 SEE ALSO
+ 
+L<Template::Lace>.
+
+=head1 AUTHOR
+
+Please See L<Template::Lace> for authorship and contributor information.
+  
+=head1 COPYRIGHT & LICENSE
+ 
+Please see L<Template::Lace> for copyright and license information.
+
+=cut 
