@@ -12,25 +12,32 @@ Template::Lace - Logic-less, strongly typed templates, and componentized HTML te
 
 A Template Model:
 
+    package MyApp::Template::User;
+
+    use Moo;
+    with 'Template::Lace::ModelRole';
+
     has [qw/age name motto/] => (is=>'ro', required=>1);
 
-    sub template { q[
-      <html>
-        <head>
-          <title>User Info</title>
-        </head>
-          <body>
-            <dl id='user'>
-              <dt>Name</dt>
-              <dd id='name'> -NAME- </dd>
-              <dt>Age</dt>
-              <dd id='age'> -AGE- </dd>
-              <dt>Motto</dt>
-              <dd id='motto'> -MOTTO- </dd>
-            </dl>
-          </body>
-      </html>
-    ]}
+    sub template {
+      return q[
+        <html>
+          <head>
+            <title>User Info</title>
+          </head>
+            <body>
+              <dl id='user'>
+                <dt>Name</dt>
+                <dd id='name'> -NAME- </dd>
+                <dt>Age</dt>
+                <dd id='age'> -AGE- </dd>
+                <dt>Motto</dt>
+                <dd id='motto'> -MOTTO- </dd>
+              </dl>
+            </body>
+        </html>
+      ]
+    }
 
     sub process_dom {
       my ($self, $dom) = @_;
@@ -111,7 +118,9 @@ but you don't have to use L<Moo> as long as you conform to the minimal interface
 templates are fully HTML markup only; they contain no display logic, only valid HTML and component
 declarations.  We use L<Template::Lace::DOM> (which is a subclass of L<Mojo::DOM58>) to alter the 
 template for presentation at request time.  L<Template::Lace::DOM> provides an API to transform
-the template into HTML using instance data and methods provided by the class.
+the template into HTML using instance data and methods provided by the class.  See the class
+L<Template::Lace::DOM> and L<Mojo::DOM58> for more about how these classes allow you to inspect
+and modify a DOM.
 
 When you have a Perl class that does L<Template::Lace::ModelRole> we call that a 'Model' class
 Here's an example of a very simple Model class:

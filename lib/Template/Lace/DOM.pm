@@ -7,7 +7,7 @@ use Storable ();
 use Scalar::Util;
 
 # General Helpers
-#
+
 sub clone {
   return Storable::dclone(shift);
 }
@@ -94,41 +94,52 @@ sub fill {
 }
 
 sub append_style_uniquely {
-  my $dom = shift;
-  my %attrs = ref($_[0]) ? %{$_[0]} : @_;
-  my $content = delete($attrs{content}) || '';
-  my $head = $dom->at('head');
-  unless($head->at(qq{style[id="${\do { $attrs{id}||'' }}"]})) {
-    my $attr_string = join ' ', map { "$_='$attrs{$_}'" } keys %attrs;
-    $head->append_content("<style $attr_string>$content</style>");
+  my $self = shift;
+  my $style_dom = ref($_[0]) ? shift : ref($self)->new(shift);
+  $style_dom = (($style_dom->tag||'') eq 'style') ?
+    $style_dom : $style_dom->at('style');
+
+  if(my $id = $style_dom->attr('id')) {
+    my $head = $self->at("head") || return $self;
+    unless($head->at("style[id='$id']")) {
+      $head->append_content($style_dom);
+    }
   }
-  return $dom;
+  return $self;
 }
 
 sub append_script_uniquely {
-  my $dom = shift;
-  my %attrs = ref($_[0]) ? %{$_[0]} : @_;
-  my $content = delete($attrs{content}) || '';
-  my $head = $dom->at('head');
-  unless(
-    $head->at(qq{script[src="${\do { $attrs{src}||'' }}"]})
-    || $head->at(qq{script[id="${\do { $attrs{id}||'' }}"]})
-  ) {
-    my $attr_string = join ' ', map { "$_='$attrs{$_}'" } keys %attrs;
-    $head->append_content("<script $attr_string>$content</script>");
+  my $self = shift;
+  my $script_dom = ref($_[0]) ? shift : ref($self)->new(shift);
+  $script_dom = (($script_dom->tag||'') eq 'script') ?
+    $script_dom : $script_dom->at('script');
+
+  if(my $id = $script_dom->attr('id')) {
+    my $head = $self->at("head") || return $self;
+    unless($head->at("script[id='$id']")) {
+      $head->append_content($script_dom);
+    }
+  } elsif(my $src = $script_dom->attr('src')) {
+    my $head = $self->at("head") || return $self;
+    unless($head->at("script[src='$src']")) {
+      $head->append_content($script_dom);
+    }
   }
-  return $dom;
+  return $self;
 }
 
 sub append_link_uniquely {
-  my $dom = shift;
-  my %attrs = ref($_[0]) ? %{$_[0]} : @_;
-  my $head = $dom->at('head');
-  unless($head->at(qq{link[href="$attrs{href}"]})) {
-    my $attr_string = join ' ', map { "$_='$attrs{$_}'" } keys %attrs;
-    $head->append_content("<link $attr_string />");
+  my $self = shift;
+  my $link_dom = ref($_[0]) ? shift : ref($self)->new(shift);
+  $link_dom = (($link_dom->tag||'') eq 'link') ?
+    $link_dom : $link_dom->at('link');
+  if(my $href = $link_dom->attr('href')) {
+    my $head = $self->at("head") || return $self;
+    unless($head->at("link[href='$href']")) {
+      $head->append_content($link_dom);
+    }
   }
-  return $dom;
+  return $self;
 }
 
 # attribute helpers (tag specific or otherwise
@@ -228,7 +239,8 @@ Uses L<Storable> C<dclone> to clone the current DOM.
 
 =head2 overlay
 
-Overlay the current DOM with a new one.  Example
+Overlay the current DOM with a new one.  Examples a coderef that should return the
+new DOM and any additional arguments you want to pass to the coderef.  Example;
 
     my $dom = Template::Lace::DOM->new(qq[
       <h1 id="title">HW</h1>
@@ -250,12 +262,21 @@ Overlay the current DOM with a new one.  Example
       ]);
 
       $new_dom->title($dom->at('#title')->content)
-        ->body($dom->at('#body')
-        ->at('head)
-        ->append_content(<meta startup="$dom">);
+        ->body($dom->at('#body'))
+        ->at('head')
+        ->append_content("<meta startup='$now'>");
 
-      return $new_dom
-    }, DateTime->now);
+      return $new_dom;
+    }, scalar(localtime));
+
+Returns example:
+
+    <html>
+      <head>
+        <title>HW</title>
+      <meta startup="Fri Apr 21 15:45:49 2017"></head>
+      <body>Hello World</body>
+    </html>
 
 Useful to encapsulate a lot of the work when you want to apply a standard
 layout to a web page or section there of.
@@ -264,18 +285,21 @@ layout to a web page or section there of.
 
 Repeat a match as in a loop.  Example:
 
-    my $dom = Template::Lace::DOM->new("<ul><li>ITEMS</li><ul>");
+    my $dom = Template::Lace::DOM->new("<ul><li>ITEMS</li></ul>");
     my @items = (qw/aaa bbb ccc/);
 
     $dom->at('li')
       ->repeat(sub {
           my ($li, $item, $index) = @_;
+          # $li here is DOM that represents the original '<li>ITEMS</li>'
+          # each repeat gets that (as a lone of the original) and you can
+          # modify it.
           $li->content($item);
       }, @items);
 
-    print $dom->as_string;
+    print $dom->to_string;
 
-Returns
+Returns:
 
     <ul>
       <li>aaa</li>
@@ -290,7 +314,9 @@ You might want to see L</LIST HELPERS> and L</fill> as well.
 Like C<content> but when called on a tag that does not have content
 (like C<input>) will attempt to 'do the right thing'.  For example
 it will put the value into the 'value' attribute of the C<input>
-tag.  
+tag.
+
+Returns the original DOM.
 
 B<NOTE> This method is subject to change
 
@@ -411,7 +437,7 @@ Examples:
         $_->append_content('<link href="/css/core.css" />');
       })->body($data);
 
-    print $dom->as_string;
+    print $dom->to_string;
 
 Returns
 
@@ -446,6 +472,45 @@ and possible support / code understanding.
 Helpers to make populating data into list type tags easier.  All return
 the original DOM to make chaining easier.
 
+    my $dom = Template::Lace::DOM->new(q[
+      <section>
+        <ul id='stuff'>
+          <li></li>
+        </ul>
+        <ul id='stuff2'>
+          <li>
+            <a class='link'>Links</a> and Info: 
+            <span class='info'></span>
+          </li>
+        </ul>
+
+        <ol id='ordered'>
+          <li></li>
+        </ol>
+        <dl id='list'>
+          <dt>Name</dt>
+          <dd id='name'></dd>
+          <dt>Age</dt>
+          <dd id='age'></dd>
+        </dl>
+      </section>
+    ]);
+
+  $dom->ul('#stuff', [qw/aaa bbbb ccc/]);
+  $dom->ul('#stuff2', [
+    { link=>'1.html', info=>'one' },
+    { link=>'2.html', info=>'two' },
+    { link=>'3.html', info=>'three' },
+  ]);
+
+  $dom->ol('#ordered', [qw/11 22 33/]);
+
+  $dom->dl('#list', {
+    name=>'joe', 
+    age=>'32',
+  });
+
+
 =head2 ul
 
 =head2 ol
@@ -455,14 +520,95 @@ list tags.
 
 Example:
 
-    TODO
+    my $dom = Template::Lace::DOM->new(q[
+      <section>
+        <ul id='stuff'>
+          <li></li>
+        </ul>
+        <ul id='stuff2'>
+          <li>
+            <a class='link'>Links</a> and Info: 
+            <span class='info'></span>
+          </li>
+        </ul>
+
+        <ol id='ordered'>
+          <li></li>
+        </ol>
+        <dl id='list'>
+          <dt>Name</dt>
+          <dd id='name'></dd>
+          <dt>Age</dt>
+          <dd id='age'></dd>
+        </dl>
+      </section>
+    ]);
+
+  $dom->ul('#stuff', [qw/aaa bbbb ccc/]);
+  $dom->ul('#stuff2', [
+    { link=>'1.html', info=>'one' },
+    { link=>'2.html', info=>'two' },
+    { link=>'3.html', info=>'three' },
+  ]);
+
+  $dom->ol('#ordered', [qw/11 22 33/]);
+
+Returns:
+
+    <section>
+      <ul id="stuff">     
+        <li>aaa</li>
+        <li>bbbb</li>
+        <li>ccc</li>
+      </ul>
+      <ul id="stuff2">     
+        <li>
+          <a class="link">1.html</a> and Info: 
+          <span class="info">one</span>
+        </li>
+        <li>
+          <a class="link">2.html</a> and Info: 
+          <span class="info">two</span>
+        </li>
+        <li>
+          <a class="link">3.html</a> and Info: 
+          <span class="info">three</span>
+        </li>
+      </ul>
+      <ol id="ordered">
+      <li>11</li>
+      <li>22</li>
+      <li>33</li>
+      </ol>
+    </section>
 
 =head2 dl
 
 this helper will either an arrayref or hashref and attempt to 'do the
 right thing'.  Example:
 
-    TODO
+    my $dom = Template::Lace::DOM->new(q[
+      <section>
+        <dl id='list'>
+          <dt>Name</dt>
+          <dd id='name'></dd>
+          <dt>Age</dt>
+          <dd id='age'></dd>
+        </dl>
+      </section>]);
+
+   $dom->ol('#ordered', [qw/11 22 33/]);
+
+Returns:
+
+    <section>
+      <dl id="list">
+        <dt>Name</dt>
+        <dd id="name">joe</dd>
+        <dt>Age</dt>
+        <dd id="age">32</dd>
+      </dl>
+    </section>
 
 =head1 GENERAL TAG HELPERS
 
@@ -473,7 +619,9 @@ chaining easier.
 
 Form tag helper. Example:
 
-    TODO.
+    $dom->form('#login', sub {
+      $_->action('login.html'); 
+    });
 
 =head1 SEE ALSO
  
