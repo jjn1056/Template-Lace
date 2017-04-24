@@ -366,8 +366,6 @@ use Scalar::Util 'refaddr';
   is @{$dom->find('#stuff2 li')}, 3;
   is @{$dom->find('#ordered li')}, 3;
   is @{$dom->find('#list dd')}, 2;
-
-  warn $dom;
 }
 
 done_testing;

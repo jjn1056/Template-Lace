@@ -44,7 +44,7 @@ sub get_handler {
     $handler = $args->{component_handlers}{$prefix}->($name, $args, %{$component_info{attrs}});
   } else {
     $handler = $args->{component_handlers}{$prefix}{$name};
-    return ref($handler) eq 'CODE' ? $handler->($args, %{$component_info{attrs}}): $handler;
+    $handler = (ref($handler) eq 'CODE') ? $handler->($args, %{$component_info{attrs}}): $handler;
   }
 
   # TODO should this be in the renderer?
