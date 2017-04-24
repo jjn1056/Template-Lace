@@ -87,6 +87,7 @@ use_ok 'Template::Lace::Factory';
                 value='$.form.fields.passwd.value' />
           </lace-form>
           <lace-timestamp tz='America/Chicago'/>
+          <tag-anchor href='more.html' target='_top'>See More</tag-anchor>
         </body>
       </html>
     </layout-master>
@@ -173,9 +174,16 @@ use_ok 'Template::Lace::Factory';
   }
 }
 
+use Template::Lace::Utils ':ALL';
 ok my $factory = Template::Lace::Factory->new(
   model_class=>'Local::Template::User',
   component_handlers=>+{
+    tag => {
+      anchor => mk_component {
+        my ($self, %attrs) = @_;
+        return "<a href='$_{href}' target='$_{target}'>$_{content}</a>";
+      }
+    },
     layout => sub {
       my ($name, $args, %args) = @_;
       $name = ucfirst $name;
@@ -224,6 +232,8 @@ is $dom->at('title')->content, 'the real story';
 is $dom->at('#story')->content, 'you are doomed to discover you can never recover...';
 is $dom->at('#ff')->content, 'fffffff';
 ok $dom->at('span.timestamp')->content;
+is $dom->at('a')->content, 'See More';
+
 
 done_testing;
 

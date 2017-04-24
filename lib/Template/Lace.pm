@@ -423,7 +423,35 @@ initialization argument for the class L<Template::Lace::Factory>.  You can eithe
 attach a component to a full 'prefix-name' pair, as in the examples for 'form' and
 'input', or you can create a component 'generator' for an entire prefix by associating
 the prefix with a coderef which is responsible for returning a component based on the
-actual name.  
+actual name.
+
+If your components are trivial and/or you don't want to make a full model and Factory for
+one, you can use the L<Template::Lace::Utils> subroutine C<mk_component> to assist.  This
+creates an instance of L<Template::Lace::ComponentCallback> which is a very simple component
+defined by a code reference.  These type of components are easy to make and can run faster
+when rendering your templates but have the downside of being defined into your Factory and
+this reduced reuse.  Example
+
+    use Template::Lace::Utils 'mk_component';
+    my $factory = Template::Lace::Factory->new(
+      model_class=>'Local::Template::List',
+      component_handlers=>+{
+        tags => {
+          anchor => mk_component {
+            my ($self, %attrs) = @_;
+            return "<a href='$_{href}' target='$_{target}'>$_{content}</a>";
+          }
+        },
+      },
+    );
+
+When using this approach to creating a component, you define a subroutine that will get C<$self>
+and C<%attrs> (where C<%attrs> is the processed attributes as defined below) and you must return
+either a string or an instance of L<Template::Lace::DOM>.  To make things easier for creating
+simple components we localize '$_' to C<$self> and '%_' to C<%attrs>.  For the most part these
+types of components are the same as those defined via a factory but with fewer overall features
+(for example they can't currently support C<on_component_add>).  The choice for either style
+will depend on your need for reuse and the overall complexity of the component.
 
 When the factory is created, it delegates the job of walking the DOM we made from the Model's
 template and creating a hierarchy of components actually found.  All found components need to

@@ -32,14 +32,50 @@ Template::Lace::ComponentCallback - Create a component easily from a coderef
 
 =head1 SYNOPSIS
 
-    component_handlers => {
-      tag => {
-        anchor => Template::Lace::ComponentCallback->new(sub {
-          my ($self, %attrs) = @_;
-          return "<a href='$_{href}'>$_{content}</a>"
-        }) 
+    {
+      package Local::Template::User;
+
+      use Moo;
+      with 'Template::Lace::ModelRole';
+
+      has [qw/title story/] => (is=>'ro', required=>1);
+
+      sub template {q[
+        <html>
+          <head>
+            <title></title>
+          </head>
+          <body>
+            <div id='story'></div>
+            <tag-anchor href='more.html' target='_top'>
+              See More
+            </tag-anchor>
+          </body>
+        </html>
+      ]}
+
+      sub process_dom {
+        my ($self, $dom) = @_;
+        $dom->title($self->title)
+          ->at('#story')
+          ->content($self->story);
       }
     }
+
+    use Template::Lace::ComponentCallback;
+    my $factory = Template::Lace::Factory->new(
+      model_class=>'Local::Template::User',
+      component_handlers=>+{
+        tag => {
+          anchor => Template::Lace::ComponentCallback=>new(sub {
+            my ($self, %attrs) = @_;
+            return "<a href='$_{href}' target='$_{target}'>$_{content}</a>";
+          }),
+        },
+      },
+    );
+
+In this case C<%attrs> are the results of processing attributes
 
 =head1 DESCRIPTION
 
@@ -48,7 +84,7 @@ faster and dirtier we localize $_ to $self and %_ to %attrs.
 
 =head1 METHODS
 
-This class defines the following public methods
+This class defines the following public instance methods:
 
 sub make_dom
 

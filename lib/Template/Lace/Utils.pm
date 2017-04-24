@@ -26,19 +26,19 @@ A collection of helpful utility methods
 
 Make a callback component.  See L<Template::Lace::ComponentCallback>.  Example:
 
-    component_handlers => {
-      helper => {
-        subrequest => mk_component {
-          my ($self, %attrs) = @_;
-          "ddddddd %attrs";
+    use Template::Lace::Utils 'mk_component';
+    my $factory = Template::Lace::Factory->new(
+      model_class=>'Local::Template::User',
+      component_handlers=>+{
+        tag => {
+          anchor => mk_component {
+            my ($self, %attrs) = @_;
+            return "<a href='$_{href}' target='$_{target}'>$_{content}</a>";
+          },
         },
       },
-      tag => {
-        anchor => mk_component {
-          return "<a href='$_{href}'>$_{content}</a>"
-        },
-      }
-    }
+    );
+
 
 =head1 SEE ALSO
  
