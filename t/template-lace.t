@@ -1,5 +1,5 @@
 use Test::Most;
-use Mojo::DOM58;
+use Template::Lace::DOM;
 
 use_ok 'Template::Lace::Factory';
 
@@ -14,7 +14,7 @@ use_ok 'Template::Lace::Factory';
 
   sub prepare_dom {
     my ($self, $dom) = @_;
-    $dom->body(sub { $_->append_content('fffffff') });
+    $dom->body(sub { $_->append_content('<section id="ff">fffffff</section>') });
   }
 
   sub on_component_add {
@@ -58,12 +58,6 @@ use_ok 'Template::Lace::Factory';
     $dom->body(sub {
       $_->append_content('<meta version=1 />');
     });
-  }
-
-  sub process_dom {
-    my ($class, $dom) = @_;
-    $dom->at('body')
-      ->append_content('<footer>copyright 2017</footer>');
   }
 
   sub template {q[
@@ -134,7 +128,8 @@ use_ok 'Template::Lace::Factory';
   package Local::Template::Form;
 
   use Moo;
-  with 'Template::Lace::ModelRole';
+  with 'Template::Lace::ModelRole',
+    'Template::Lace::Model::HasChildren';
 
   has [qw(method action content)] => (is=>'ro', required=>1);
 
@@ -208,6 +203,69 @@ ok my $template = $factory->create(
     },
   });
 
-warn $template->render;
+ok my $html = $template->render;
+ok my $dom = Template::Lace::DOM->new($html);
+
+is $dom->find('meta')->[0]->attr('charset'), 'utf-8';
+is $dom->find('meta')->[1]->attr('name'), 'viewport';
+is $dom->find('link')->[0]->attr('href'), '/static/base.css';
+is $dom->find('link')->[1]->attr('href'), '/static/index.css';
+is $dom->find('style')->[0]->content, 'sdfsdfsd';
+is $dom->find('style')->[1]->content, 'fff';
+
+is $dom->at('input[name="user"]')->attr('value'), 'jjn';
+is $dom->at('input[name="passwd"]')->attr('value'), 'whatwhyhow?';
+
+is $dom->find('#cites li')->[0]->content, 'another book';
+is $dom->find('#cites li')->[1]->content, 'yet another';
+is $dom->find('#cites li')->[2]->content, 'padding';
+
+is $dom->at('title')->content, 'the real story';
+is $dom->at('#story')->content, 'you are doomed to discover you can never recover...';
+is $dom->at('#ff')->content, 'fffffff';
+ok $dom->at('span.timestamp')->content;
 
 done_testing;
+
+__END__
+generated HTML
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1" name="viewport">
+  <title>the real story</title>
+  <link href="/static/base.css" rel="stylesheet">
+  <link href="/static/index.css" rel="stylesheet">
+  <style id="formstyle">
+  sdfsdfsd
+  </style>
+  <style id="inputstyle">
+  fff
+  </style>
+</head>
+<body id="body">
+  <h1>Intro</h1>
+  <section id="story">
+    you are doomed to discover you can never recover...
+  </section>
+  <ul id="cites">
+    <li>another book</li>
+    <li>yet another</li>
+    <li>padding</li>
+  </ul>
+  <form action="/postit" method="post">
+    <div>
+      <label for="user">User:</label> <input name="user" type="text" value="jjn">
+    </div>
+    <div>
+      <label for="passwd">Password</label> <input name="passwd" type="password" value="whatwhyhow?">
+    </div>
+  </form><span class="timestamp">2017-04-24T11:18:37</span>
+  <meta>
+  <section id="ff">
+          fffffff
+  </section>
+</body>
+</html>

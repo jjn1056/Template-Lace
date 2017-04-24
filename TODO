@@ -1,6 +1,3 @@
--- Not in love with multiple inheritance design...
--- And not in love with the one class to rule them all either.
--- should components be able to get info from each other? DONE
     but maybe the add-parent/add childen thing should be in core
 
 -- Catalyst 'subrequest' handler example

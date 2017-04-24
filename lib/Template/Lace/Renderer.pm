@@ -45,17 +45,17 @@ sub process_components {
     # TODO this probably doesn't work if the stuff is in a component
     # inside a component.
     $processed_component->find('link:not(head link)')->each(sub {
-        $dom->append_link_uniquely($_->attr);
+        $dom->append_link_uniquely($_);
         $_->remove;
     });
     $processed_component->find('style:not(head style)')->each(sub {
         my $content = $_->content || '';
-        $dom->append_style_uniquely(%{$_->attr}, content=>$content);
+        $dom->append_style_uniquely($_);
         $_->remove;
     });
     $processed_component->find('script:not(head script)')->each(sub {
         my $content = $_->content || '';
-        $dom->append_script_uniquely(%{$_->attr}, content=>$content);
+        $dom->append_script_uniquely($_);
         $_->remove;
     });
 

@@ -11,6 +11,11 @@ has 'model_class' => (
   is=>'ro',
   required=>1);
 
+has 'model_constructor' => (
+  is=>'ro',
+  required=>0,
+  predicate=>'has_model_constructor');
+
 has 'renderer_class' => (
   is=>'ro',
   required=>1,
@@ -110,10 +115,9 @@ sub create_dom {
 
 sub create_model {
   my ($self, %args) = @_;
-  # TODO maybe allow coderef here for easier
-  # construction of models, ie my $model=$self->model_class->(%args) 
-  # or similar
-  my $model = $self->model_class->new(%args);
+  my $model = $self->has_model_constructor ?
+    $self->model_constructor->(%args) :
+    $self->model_class->new(%args);
   return $model;
 }
 
