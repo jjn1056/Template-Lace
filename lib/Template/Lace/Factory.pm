@@ -101,6 +101,13 @@ sub create {
   return $renderer;
 }
 
+sub render { 
+  my ($self, @args) = @_;
+  my $renderer = $self->create(@args);
+  my $response = $renderer->render;
+  return $response;
+}
+
 sub prepare_args {
   my ($self, @args) = @_;
   my %args = (%{$self->init_args}, @args);
