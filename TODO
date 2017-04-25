@@ -1,15 +1,5 @@
-    but maybe the add-parent/add childen thing should be in core
 
 -- Catalyst 'subrequest' handler example
--- Need to go through this again an mark methods as 'non public'
-
--- the core compoent stuff needs a redo.  just a simple coderef isn't 
-  enough.  We need an object that has API for 'on connect, on run, finalize'
-  etc to cover the worj that the catalyt view componet is hacking in.
-  if we can do something that moved that messy code from the catalyst role
-    into core, that would be best.  We can make a CompoentHandler::Coderef
-    class to make the common case easy.
-
 
 my $component_handler_registry = Template::Lace::ComponentHandlerRegistry->new;
 
@@ -27,12 +17,6 @@ my $user_template = $user_template_factory->create(%args);
 $user_template->add_friends(@friends);
 my $content = $user_template->render;
     
-
-how even to have TO_JSON for doing both HTML and JSON?
-
-  ResourceClass (InterfaceModel??)
-  RepresentationRenderer
-
 
   my $registry = Template::Lace::Registry->new(
     component_handlers
@@ -61,9 +45,6 @@ how even to have TO_JSON for doing both HTML and JSON?
       my ($self, $data, $dom) = @_;
       $dom->ul('#friends, $data)
   );
-
-  
-
 
 # The idea is that the sub component gets it args from
 # the contaiing componet

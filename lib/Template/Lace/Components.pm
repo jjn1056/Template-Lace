@@ -221,7 +221,9 @@ Template::Lace::Components - Prepares a Component Hierarchy from a DOM
 =head1 DESCRIPTION
 
 Use by L<Template::Lace::Factory> to create a component hierarchy for a DOM
-and from the defined component_mappings.
+and from the defined component_mappings.  Not really end user bits aimed here
+but you can subclass if you want customized component features.  See the main
+docs in L<Template::Lace> for detailed discussion of Components.
 
 =head1 SEE ALSO
  

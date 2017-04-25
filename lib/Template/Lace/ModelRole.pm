@@ -34,6 +34,24 @@ Template::Lace::ModelRole
 
 The minimal interface that a model class must provide.
 
+=head1 METHODS
+
+This interface exposes the following public methods.  For detailed examples
+see L<Template::Lace>.
+
+=head2 template
+
+Class method that should return a string which is the template for this model
+
+=head2 prepare_dom
+
+Class method that allows you to alter the DOM once at setup time.
+
+=head2 process_dom
+
+Instance method that recieves the DOM and allows you to transform it at
+request time.
+
 =head1 SEE ALSO
  
 L<Template::Lace>.

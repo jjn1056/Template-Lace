@@ -31,6 +31,15 @@ Please note these are the children components added as part of the model to
 which this component is attached.  This component might define its own component
 hierachy.
 
+=head1 METHODS
+
+This interface exposes the following public methods
+
+=head2 children
+
+Returns an array of the child components under this component (as defined by
+the top model component hierachy).
+
 =head1 SEE ALSO
  
 L<Template::Lace>.

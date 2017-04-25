@@ -123,7 +123,7 @@ sub create_dom {
 sub create_model {
   my ($self, %args) = @_;
   my $model = $self->has_model_constructor ?
-    $self->model_constructor->(%args) :
+    $self->model_constructor->($self->model_class, %args) :
     $self->model_class->new(%args);
   return $model;
 }
@@ -151,6 +151,44 @@ Template::Lace::Factory - Create templates
 =head1 DESCRIPTION
 
 Produces Templates from a model.
+
+=head1 INITIALIZATION ARGUMENTS
+
+This class defines the following initialization arguments
+
+=head2 model_class
+
+The class that is providing the view model and does the interface
+defined by L<Template::Lace::ModelRole>
+
+=head2 model_constructor
+
+An optional codereference that allows you to specify how the C<model_class>
+it turned into an instance.  By default we call a method called C<new>
+on the C<model_class>.  If you have special needs in creating the model
+you can define this coderef which gets the C<model_class> and initialization
+arguments and should return an instance.  For example:
+
+    model_constructor => sub {
+      my ($model_class, %args) = @_:
+      return $model_class->new( version=>1, %args); 
+    },
+
+=head2 renderer_class
+
+The name of the Render class.  useful if you need to subclass to provide
+special feeatures.
+
+=head2 init_args
+
+A hashref of arguments that are fixed and are always passed to the model
+constructor at create time.  Useful if your model class has some attributes
+which only need to be defined once.
+
+=head2 component_mappings
+
+A Hashref of component information.  For now see the core documentation at
+L<Template::Lace> for details about components.
 
 =head1 SEE ALSO
  

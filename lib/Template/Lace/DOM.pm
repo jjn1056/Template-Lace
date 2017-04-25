@@ -61,10 +61,19 @@ sub fill {
     local $_ = $self;
     $data->($self);
   } elsif(ref $data eq 'ARRAY') {
-    $self->repeat(sub {
-      my ($dom, $datum, $index) = @_;
-      $dom->fill($datum, 1);
-    }, @$data);
+    if(
+        (($self->tag||'') eq 'ol')
+        || (($self->tag||'') eq 'ul')
+      )
+    {
+      $self->at('li')
+        ->fill($data, $is_loop);
+    } else {
+      $self->repeat(sub {
+        my ($dom, $datum, $index) = @_;
+        $dom->fill($datum, 1);
+      }, @$data);
+    }
   } elsif(ref $data eq 'HASH') {
     foreach my $match (keys %{$data}) {
       if(!$is_loop) {
@@ -318,7 +327,7 @@ tag.
 
 Returns the original DOM.
 
-B<NOTE> This method is subject to change
+B<NOTE> Possibly magical method that will need lots of fixes.
 
 =head2 fill
 
@@ -326,10 +335,85 @@ Used to 'fill' a DOM node with data inteligently by matching hash keys
 or methods to classes (or ids) and creating repeat loops when the data
 contains an arrayref.
 
-Useful to rapidly fill data into a DOM if you don't mind the structual
-binding between classes/ids and your data.  Examples
+C<fill> will recursively descend the data structure you give it and match
+hash keys to tag ids or tag classes and then arrayrefs to tag classes only
+(since ids can't be repeated).
 
-    TODO
+Useful to rapidly fill data into a DOM if you don't mind the structual
+binding between classes/ids and your data.  Examples:
+
+    my $dom = Template::Lace::DOM->new(q[
+      <section>
+        <ul id='stuff'>
+          <li></li>
+        </ul>
+        <ul id='stuff2'>
+          <li>
+            <a class='link'>Links</a> and Info: 
+            <span class='info'></span>
+          </li>
+        </ul>
+        <ol id='ordered'>
+          <li></li>
+        </ol>
+        <dl id='list'>
+          <dt>Name</dt>
+          <dd id='name'></dd>
+          <dt>Age</dt>
+          <dd id='age'></dd>
+        </dl>
+      </section>
+    ]);
+
+    $dom->fill({
+        stuff => [qw/aaa bbb ccc/],
+        stuff2 => [
+          { link=>'1.html', info=>'one' },
+          { link=>'2.html', info=>'two' },
+          { link=>'3.html', info=>'three' },
+        ],
+        ordered => [qw/11 22 33/],
+        list => {
+          name=>'joe', 
+          age=>'32',
+        },
+      });
+
+Produces:
+
+    <section>
+      <ul id="stuff">       
+        <li>aaa</li><li>bbb</li><li>ccc</li>
+      </ul>
+      <ul id="stuff2">
+      <li>
+          <a class="link">1.html</a> and Info: 
+          <span class="info">one</span>
+        </li><li>
+          <a class="link">2.html</a> and Info: 
+          <span class="info">two</span>
+        </li><li>
+          <a class="link">3.html</a> and Info: 
+          <span class="info">three</span>
+        </li>
+      </ul>
+      <ol id="ordered">
+        <li>11</li><li>22</li><li>33</li>
+      </ol>
+      <dl id="list">
+        <dt>Name</dt>
+        <dd id="name">joe</dd>
+        <dt>Age</dt>
+        <dd id="age">32</dd>
+      </dl>
+    </section>
+
+In general C<fill> will try to do the right thing, even coping with
+list tags such as C<ol> and <ul> correctly.  You maye find it more
+magical than you like.  Also using this introduces a required structural
+binding between you Model class and the ids and classes of tags in your
+templates.  You might find this a great convention or fragile binding
+depending on your outlook.
 
 You might want to see L</LIST HELPERS> as well.
 

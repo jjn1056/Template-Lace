@@ -75,7 +75,9 @@ Template::Lace::ComponentCallback - Create a component easily from a coderef
       },
     );
 
-In this case C<%attrs> are the results of processing attributes
+In this case C<%attrs> are the results of processing attributes.
+
+B<NOTE> You might prefer to call this via L<Template::Lace::Utils> instead.
 
 =head1 DESCRIPTION
 
@@ -88,7 +90,8 @@ This class defines the following public instance methods:
 
 sub make_dom
 
-Create an instance of L<Template::Lace::DOM>.
+Create an instance of L<Template::Lace::DOM>.  Useful if you have complex
+component setup and transformation.
 
 =head1 SEE ALSO
  

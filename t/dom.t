@@ -67,9 +67,50 @@ use Scalar::Util 'refaddr';
   }
 
   #fill
-  #{
-    ## TODO 
-  #}
+  {
+    my $dom = Template::Lace::DOM->new(q[
+      <section>
+        <ul id='stuff'>
+          <li></li>
+        </ul>
+        <ul id='stuff2'>
+          <li>
+            <a class='link'>Links</a> and Info: 
+            <span class='info'></span>
+          </li>
+        </ul>
+
+        <ol id='ordered'>
+          <li></li>
+        </ol>
+        <dl id='list'>
+          <dt>Name</dt>
+          <dd id='name'></dd>
+          <dt>Age</dt>
+          <dd id='age'></dd>
+        </dl>
+      </section>
+    ]);
+
+    $dom->fill({
+        stuff => [qw/aaa bbb ccc/],
+        stuff2 => [
+          { link=>'1.html', info=>'one' },
+          { link=>'2.html', info=>'two' },
+          { link=>'3.html', info=>'three' },
+        ],
+        ordered => [qw/11 22 33/],
+        list => {
+          name=>'joe', 
+          age=>'32',
+        },
+      });
+
+    is @{$dom->find('#stuff li')}, 3;
+    is @{$dom->find('#stuff2 li')}, 3;
+    is @{$dom->find('#ordered li')}, 3;
+    is @{$dom->find('#list dd')}, 2;
+  }
 
   #append_style_uniquely
   {

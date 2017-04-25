@@ -6,7 +6,7 @@ our $VERSION = '0.001';
 
 =head1 NAME
 
-Template::Lace - Logic-less, strongly typed templates, and componentized HTML templates.
+Template::Lace - Logic-less, strongly typed, and componentized HTML templates.
 
 =head1 SYNOPSIS
 
@@ -54,6 +54,9 @@ A Factory and Renderer
     my $factory = Template::Lace::Factory->new(
       model_class=>'MyApp::Template::User');
 
+    # Once the $factory is created you can reuse it to build new
+    # template renderer instances.
+
     my $renderer = $factory->create(
       age=>42,
       name=>'John',
@@ -98,12 +101,15 @@ Outputs:
 L<Template::Lace> is a toolkit for building HTML pages using logic-less and componentized
 templates.  As such this distribution is currently not aimed at standalone use but rather
 exists as all the reusable bits that fell out when I refactored L<Catalyst::View::Template::Lace>.
-Currently this toolkit then exists to support the L<Catalyst> View and as a result documentation
+So currently this toolkit then exists to support the L<Catalyst> View and as a result documentation
 here is high level and API level.  If you want to integrate L<Template::Lace> into other
 web frameworks you might wish to review L<Catalyst::View::Template::Lace> for a possible
 approach.  Ideas about how to make this distribution more usefully stand alone are quite welcomed!
 Examples given here are probably more verbose than it would be if using this under a web
 framework like L<Catalyst> (see L<Catalyst::View::Template::Lace>).
+
+You may wish to review the files under the C</examples> directory of this distribution to
+see a L<Web::Simple> proof of concept.
 
 B<NOTE> Since this is still under heavy development and review I reserve the right to make
 breaking changes, or to conclude the approach is fundementally flawed and exit the project. Do
@@ -266,7 +272,7 @@ at this point will become cloned for all subsequent requests.  For example:
       $dom->ol('#todos', $self->items);
     }
 
-In this case we'd add a startup timestanp to the header area of the template, which might be
+In this case we'd add a startup timestamp to the header area of the template, which might be
 useful for debugging for example.
 
 This example also used the role L<Template::Lace::Model::AutoTemplate> which allows you to
@@ -287,7 +293,7 @@ would declare a component like this:
         attr1=>'literal value'
         attr2=>'$.foo'
         attr3=>\'title:content'>
-      [some addtional content such as HTML markup and text]
+      [some additional content such as HTML markup and text]
     </prefix-name>
 
 A component doesn't have to contain anything (like the <br/> or <hr/> tag) in which case
@@ -430,7 +436,7 @@ one, you can use the L<Template::Lace::Utils> subroutine C<mk_component> to assi
 creates an instance of L<Template::Lace::ComponentCallback> which is a very simple component
 defined by a code reference.  These type of components are easy to make and can run faster
 when rendering your templates but have the downside of being defined into your Factory and
-this reduced reuse.  Example
+this reduces reuse.  Example:
 
     use Template::Lace::Utils 'mk_component';
     my $factory = Template::Lace::Factory->new(
@@ -446,7 +452,8 @@ this reduced reuse.  Example
     );
 
 When using this approach to creating a component, you define a subroutine that will get C<$self>
-and C<%attrs> (where C<%attrs> is the processed attributes as defined below) and you must return
+and C<%attrs> (where C<%attrs> is the processed attributes from your component declaration in the
+template) and you must return
 either a string or an instance of L<Template::Lace::DOM>.  To make things easier for creating
 simple components we localize '$_' to C<$self> and '%_' to C<%attrs>.  For the most part these
 types of components are the same as those defined via a factory but with fewer overall features
@@ -647,7 +654,7 @@ we haven't worked out all the best ways this needs to work, or built in all the 
 necessary.  Discussion welcomed!
 
 This component also demonstrates how a component that wraps content might work, since it
-collections that content via the 'content' attribute and inserts into into its own
+collects that content via the 'content' attribute and inserts into into its own
 local DOM (via ->content($self->content) using L<Template::Lace::DOM>.  Lets see the
 how the 'view-input' component works:
 
@@ -713,7 +720,7 @@ template that changes the markup, adds new features or behaviors.  For example
 you could have a subclass that added CSS markup from one of the popular CSS
 frameworks.  Or you could add javascript to make the form AJAXy.  Example:
 
-    package MyApp::Role::View::StyledInput
+    package MyApp::Role::View::StyledInput;
 
     use Moo;
 

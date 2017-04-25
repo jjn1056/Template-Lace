@@ -128,7 +128,8 @@ Template::Lace::Renderer
 
 =head1 DESCRIPTION
 
-Renderer for the model.
+Renderer for the model.  Not really end user aimed.  See L<Template::Lace>
+for main overview.
 
 =head1 SEE ALSO
  
