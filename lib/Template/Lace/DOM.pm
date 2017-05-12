@@ -181,20 +181,31 @@ sub do {
   while(@_) {
     my ($matchspec, $action) = (shift, shift);
     my ($css, $maybe_attr) = split('@', $matchspec);
-    $self->find($css)
-      ->each(sub {
-          if($maybe_attr) {
-            $_->attr($maybe_attr => $action);
-          } elsif(!ref $action) {
-            warn "zzz" x 100;
-            my $escaped = escape_html $action;
-            warn "$action ... $escaped";
-            $_->content($escaped);
-          } else {
-            $_->fill($action);
+    if($css ne '.') {
+      $self->find($css)
+        ->each(sub {
+            if($maybe_attr) {
+              die "Current selected element is not a tag" unless $_->tag;
+              $_->attr($maybe_attr => $action);
+            } elsif(!ref $action) {
+              my $escaped = escape_html $action;
+              $_->content($escaped);
+            } else {
+              $_->fill($action);
+            }
           }
-        }
-      );
+        );
+    } else {
+      if($maybe_attr) {
+        die "Current selected element is not a tag" unless $self->tag;
+        $self->attr($maybe_attr => $action);
+      } elsif(!ref $action) {
+        my $escaped = escape_html $action;
+        $self->content($escaped);
+      } else {
+        $self->fill($action);
+      }
+    }
   }
   return $self;
 }
@@ -220,6 +231,7 @@ sub enctype { shift->attribute_helper('enctype', @_) }
 sub formaction { shift->attribute_helper('formaction', @_) }
 sub headers { shift->attribute_helper('headers', @_) }
 sub size { shift->attribute_helper('size', @_) }
+sub value { shift->attribute_helper('value', @_) }
 
 sub boolean_attribute_helper {
   my ($self, $name, $value) = @_;
@@ -616,6 +628,9 @@ fill that attribute.
 Additionally if the action is a simple, scalar value we automatically HTML escape
 it for you
 
+B<NOTE> if you want to set content or attributes on the DOM that ->do is run on
+you can use '.' as the match specification.
+
 =head1 ATTRIBUTE HELPERS
 
 The following methods are intended to make setting standard attributes on
@@ -648,8 +663,7 @@ it easier to chain several calls.
 
 =head2 colspan
 
-s
-
+=head2 value
 
 Example
 

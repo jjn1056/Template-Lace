@@ -460,7 +460,9 @@ use Scalar::Util 'refaddr';
     </section>
   ]);
 
-  $dom->do(
+  $dom->at('section')
+    ->do(
+    '.@id' => 'classclass',
     'section h2' => sub { $_->content('<blick>Wrathful Hound</blick>') },
     '#stuff', [qw/aaa bbbb ccc/],
     '#stuff2', [
@@ -476,6 +478,7 @@ use Scalar::Util 'refaddr';
     'a@href' => 'localhost://aaa.html',
   );
 
+  is $dom->at('section')->attr('id'), 'classclass';
   is @{$dom->find('#stuff li')}, 3;
   is @{$dom->find('#stuff2 li')}, 3;
   is @{$dom->find('#ordered li')}, 3;
