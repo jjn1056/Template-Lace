@@ -176,6 +176,39 @@ sub escape_html {
   return $value;
 }
 
+sub _do_attr {
+  my ($self, $attr, $val) = @_;
+  if($attr eq ':content') {
+    $self->fill($val);
+  } elsif(
+    ($attr eq 'checked')
+    || ($attr eq 'selected')
+    || ($attr eq 'hidden')
+  ) {
+    $self->attr($attr=>'on');
+  } else {
+    $self->attr($attr=>$val);
+  }
+}
+
+sub _do {
+  my ($self, $maybe_attr, $action) = @_;
+  if($maybe_attr) {
+    die "Current selected element is not a tag" unless $self->tag;
+    if($maybe_attr eq '*') {
+      die 'action must be a hashref' unless ref($action) eq 'HASH';
+      map { $self->_do_attr($_, $action->{$_}) } keys %$action;
+    } else {
+      $self->_do_attr($maybe_attr => $action);
+    }
+  } elsif(!ref $action) {
+    my $escaped = escape_html $action;
+    $self->content($escaped);
+  } else {
+    $self->fill($action);
+  }
+}
+
 sub do {
   my $self = shift;
   while(@_) {
@@ -183,28 +216,9 @@ sub do {
     my ($css, $maybe_attr) = split('@', $matchspec);
     if($css ne '.') {
       $self->find($css)
-        ->each(sub {
-            if($maybe_attr) {
-              die "Current selected element is not a tag" unless $_->tag;
-              $_->attr($maybe_attr => $action);
-            } elsif(!ref $action) {
-              my $escaped = escape_html $action;
-              $_->content($escaped);
-            } else {
-              $_->fill($action);
-            }
-          }
-        );
+        ->each(sub { $_->_do($maybe_attr, $action) });
     } else {
-      if($maybe_attr) {
-        die "Current selected element is not a tag" unless $self->tag;
-        $self->attr($maybe_attr => $action);
-      } elsif(!ref $action) {
-        my $escaped = escape_html $action;
-        $self->content($escaped);
-      } else {
-        $self->fill($action);
-      }
+      $self->_do($maybe_attr, $action);
     }
   }
   return $self;
@@ -222,7 +236,6 @@ sub target { shift->attribute_helper('target', @_) }
 sub src { shift->attribute_helper('src', @_) }
 sub href { shift->attribute_helper('href', @_) }
 sub id { shift->attribute_helper('id', @_) }
-sub class { shift->attribute_helper('class', @_) }
 sub action { shift->attribute_helper('action', @_) }
 sub method { shift->attribute_helper('method', @_) }
 sub colspan { shift->attribute_helper('colspan', @_) }
@@ -232,6 +245,16 @@ sub formaction { shift->attribute_helper('formaction', @_) }
 sub headers { shift->attribute_helper('headers', @_) }
 sub size { shift->attribute_helper('size', @_) }
 sub value { shift->attribute_helper('value', @_) }
+
+sub class {
+  my ($self, @proto) = @_;
+  if(ref($proto[0]) eq 'HASH') {
+    my $classes = join ' ', grep { $proto[0]->{$_} } keys %{$proto[0]};
+    return $self->attribute_helper('class', $classes);
+  } else {
+    return $self->attribute_helper('class',@proto);
+  }
+}
 
 sub boolean_attribute_helper {
   my ($self, $name, $value) = @_;
@@ -645,8 +668,6 @@ it easier to chain several calls.
 
 =head2 id
 
-=head2 class
-
 =head2 action
 
 =head2 method
@@ -681,6 +702,24 @@ Example
 These attribute helpers have a special feature, since its basically a boolean attribute
 will check the passed value for its truth state, setting the attribute value to 'on'
 when true, but NOT setting the attribute at all if its false.
+
+=head2 class
+
+This attribute helper has a special shortcup to make it easier to programmtically set
+several classes based on a property.  If your argument is a hashref, all the keys whose
+values are true will be added.  For example:
+
+    my $dom = Template::Lace::DOM->new('<html><div>aaa</div></html>');
+
+    $dom->at('div')->class({ completed=>1, selected=>0});
+
+    print $dom;
+
+Returns:
+
+    <html><div class="completed">aaa</div></html>
+
+Useful to reduce some boilerplate.
 
 =head1 UNIQUE TAG HELPERS
 

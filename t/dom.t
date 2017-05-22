@@ -432,6 +432,13 @@ use Scalar::Util 'refaddr';
   ok $cap[0];
 }
 
+#class
+{
+  my $dom = Template::Lace::DOM->new('<html><div>aaa</div></html>');
+  $dom->at('div')->class({ completed=>1, selected=>0});
+  is $dom->at('div')->attr('class'), 'completed';
+}
+
 #do
 {
   my $dom = Template::Lace::DOM->new(q[
@@ -446,7 +453,6 @@ use Scalar::Util 'refaddr';
           <span class='info'></span>
         </li>
       </ul>
-
       <ol id='ordered'>
         <li></li>
       </ol>
@@ -463,6 +469,7 @@ use Scalar::Util 'refaddr';
   $dom->at('section')
     ->do(
     '.@id' => 'classclass',
+    '.@*' => +{ rev=>3, class=>'top', hidden=>1 },
     'section h2' => sub { $_->content('<blick>Wrathful Hound</blick>') },
     '#stuff', [qw/aaa bbbb ccc/],
     '#stuff2', [
