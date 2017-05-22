@@ -1,5 +1,8 @@
 The following logs changes for the CPAN distribution Template::Lace
 
+0.005   22 May 2017
+        - Fixed the AutoTemplate role
+
 0.004   22 May 2017
         - We removed Template::Lace::ModelRole since it wasn't needed.
         - arguments on components declared in templates can now pass complex
