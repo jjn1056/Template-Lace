@@ -492,9 +492,127 @@ use Scalar::Util 'refaddr';
   is @{$dom->find('#list dd')}, 2;
 }
 
+{ # Forms
+  my $dom = Template::Lace::DOM->new(q[
+    <form id='login'>
+      <textarea name='details'>info</textarea>
+      <input type='text' name='user' />
+      <input type='hidden' name='uid' />
+      <input type='password' name='passwd' />
+      <input type='checkbox' name='toggle'/> <!-- value is bool 'checked' -->
+      <input type='radio' name='choose' />  <!-- fill type value is 'checked' -->
+      <select name='cars'> <!-- fill type -->
+        <option value='honda'>Honda</option>   <!-- 'selected' -->
+      </select>
+      <select name='jobs'>
+        <optgroup label='Example'>
+          <option>Example</option>
+        </optgroup>
+      </select>
+    </form>
+    ]);
+
+  {
+    my $localdom = $dom->clone;
+    $localdom->at('form')
+      ->fill(
+        +{
+          user => 'Hi User',
+          uid => 111,
+          passwd => 'nopass',
+          toggle => 'on',
+          choose => [
+            +{id=>'id1', value=>1},
+            +{id=>'id2', value=>2},
+          ],
+          cars => [
+            +{ value=>'honda', content=>'Honda' },
+            +{ value=>'ford', content=>'Ford', selected=>1 },
+            +{ value=>'gm', content=>'General Motors' },
+          ],
+          jobs => [
+            +{
+              label=>'Easy',
+              options => [
+                +{ value=>'slacker', content=>'Slacker' },
+                +{ value=>'couch_potato', content=>'Couch Potato' },
+              ],
+            },
+            +{
+              label=>'Hard',
+              options => [
+                +{ value=>'digger', content=>'Digger' },
+                +{ value=>'brain', content=>'Brain Surgeon' },
+              ],
+            },
+          ],
+        },
+      );
+
+    warn $localdom;
+  }
+
+  { # select API
+    my $localdom = $dom->clone;
+    $localdom->select('cars', [
+      +{ value=>'honda', content=>'Honda' },
+      +{ value=>'ford', content=>'Ford', selected=>1 },
+      +{ value=>'gm', content=>'General Motors' },
+    ]);
+    
+    $localdom->select('jobs', [
+      +{
+        label=>'Easy',
+        options => [
+          +{ value=>'slacker', content=>'Slacker' },
+          +{ value=>'couch_potato', content=>'Couch Potato' },
+        ],
+      },
+      +{
+        label=>'Hard',
+        options => [
+          +{ value=>'digger', content=>'Digger' },
+          +{ value=>'brain', content=>'Brain Surgeon' },
+        ],
+      },
+    ]);
+
+    is $localdom->at('option[value="honda"]')->content, 'Honda';
+    is $localdom->at('option[value="ford"]')->content, 'Ford';
+    is $localdom->at('option[value="ford"]')->attr('selected'), 'on';
+    is $localdom->at('option[value="gm"]')->content, 'General Motors';
+
+    is $localdom->at('option[value="slacker"]')->content, 'Slacker';
+    is $localdom->at('option[value="couch_potato"]')->content, 'Couch Potato';
+    is $localdom->at('option[value="digger"]')->content, 'Digger';
+    is $localdom->at('option[value="brain"]')->content, 'Brain Surgeon';
+  }
+
+  { # 'radio' API
+    my $localdom = $dom->clone;
+
+    $localdom->radio('choose',[
+      +{id=>'id1', value=>1},
+      +{id=>'id2', value=>2},
+      ]);
+
+    is $localdom->at('#id1')->attr('value'), 1;
+    is $localdom->at('#id2')->attr('value'), 2;
+  }
+}
+
 done_testing;
 
 __END__
+    ->fill_fields
+    ->fields
+    ->field($name)
+
+        $dom->at('#login')
+      ->fill_fields(
+        user => 
+      );
+
 
   my $dom = Template::Lace::DOM->new(q[
     <section>

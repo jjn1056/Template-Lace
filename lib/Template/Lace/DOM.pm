@@ -49,16 +49,35 @@ sub repeat {
   } @items;
 
   # Might be a faster way to do this...
-  $self->parent->append_content($_) for @nodes;
-  $self->remove;
+  $self->replace(join '', @nodes);
   return $self;
 }
 
 sub smart_content {
   my ($self, $data) = @_;
   if($self->tag eq 'input') {
-    $self->attr(value=>$data);
-  } else {
+    if((ref($data)||'') eq 'HASH') {
+      $self->attr($data);
+    } else {
+      $self->attr(value=>$data);
+    }
+  } elsif($self->tag eq 'option') {
+    if((ref($data)||'') eq 'HASH') {
+      $self->attr(value=>$data->{value});
+      $self->attr(selected=>'on') if $data->{selected};
+      $self->content(escape_html($data->{content}));
+    } else {
+      $self->attr(value=>$data);
+      $self->content(escape_html($data));
+    }
+  } elsif($self->tag eq 'optgroup') {
+    $self->attr(label=>escape_html($data->{label}));
+    if(my $option_dom = $self->at('option')) {
+      $option_dom->fill($data->{options});
+    } else {
+      warn "optgroup with no options."
+    }
+  }else {
     $self->content(escape_html($data));
   }
   return $self;
@@ -79,6 +98,14 @@ sub fill {
     {
       $self->at('li')
         ->fill($data, $is_loop);
+    } elsif(($self->tag||'') eq 'select') {
+      if(my $optgroup = $self->at('optgroup')) {
+        $optgroup->fill($data, $is_loop);
+      } elsif(my $option = $self->at('option')) {
+        $option->fill($data, $is_loop);
+      } else {
+        warn "Found 'select' without option or optgroup";
+      }   
     } else {
       $self->repeat(sub {
         my ($dom, $datum, $index) = @_;
@@ -86,15 +113,43 @@ sub fill {
       }, @$data);
     }
   } elsif(ref $data eq 'HASH') {
-    foreach my $match (keys %{$data}) {
-      if(!$is_loop) {
-        my $dom = $self->at("#$match");
-        $dom->fill($data->{$match}, $is_loop) if $dom;
+    if(
+      (($self->tag||'') eq 'option')
+        and exists($data->{content})
+        and exists($data->{value})
+    ) {
+      $self->smart_content($data);
+    } elsif(
+        (($self->tag||'') eq 'optgroup')
+        and exists($data->{options})
+        and exists($data->{label})
+    ) {
+      $self->smart_content($data);
+    } elsif(
+        (($self->tag||'') eq 'input')
+        and exists($data->{value})
+    ) {
+      $self->smart_content($data);
+    } else {
+      foreach my $match (keys %{$data}) {
+        if(!$is_loop) {
+          if(my $dom = $self->at("#$match")) {
+            $dom->fill($data->{$match}, $is_loop);
+            next;
+          } elsif(my $dom = $self->at("*[data-lace-id='$match']")) {
+            $dom->fill($data->{$match}, $is_loop);
+            next;
+          }
+        }
+        $self->find(".$match")->each(sub {
+            my ($dom, $count) = @_;
+            $dom->fill($data->{$match}, $is_loop);
+        });
+        $self->find("input[name='$match']")->each(sub {
+            my ($dom, $count) = @_;
+            $dom->fill($data->{$match}, $is_loop);
+        });
       }
-      $self->find(".$match")->each(sub {
-          my ($dom, $count) = @_;
-          $dom->fill($data->{$match}, $is_loop);
-      });
     }
   } elsif(Scalar::Util::blessed $data) {
     my @fields = $data->meta->get_attribute_list;
@@ -246,6 +301,12 @@ sub headers { shift->attribute_helper('headers', @_) }
 sub size { shift->attribute_helper('size', @_) }
 sub value { shift->attribute_helper('value', @_) }
 
+sub multiple {
+  my $self = shift;
+  $self->attr(multiple=>'multiple');
+  return $self;
+}
+
 sub class {
   my ($self, @proto) = @_;
   if(ref($proto[0]) eq 'HASH') {
@@ -304,6 +365,19 @@ sub form { shift->tag_helper_by_id('form', @_) }
 sub ul { shift->list_helper_by_id('ul', @_) }
 sub ol { shift->list_helper_by_id('ol', @_) }
 sub dl { shift->tag_helper_by_id('dl', @_) }
+
+sub select {
+  my ($self, $name, $proto) = @_;
+  my $tag = $name=~/^\.#/ ? "$name" : "select[name=$name]";
+  return $self->unique_tag_helper($tag, $proto);
+}
+
+sub radio {
+  my ($self, $name, $proto) = @_;
+  my $tag = $name=~/^\.#/ ? "$name" : "input[type='radio'][name=$name]";
+  return $self->unique_tag_helper($tag, $proto);
+
+}
 
 sub at_id {
   my ($self, $id, $data) = @_;
@@ -699,6 +773,8 @@ Example
 
 =head2 hidden
 
+=head2 multiple
+
 These attribute helpers have a special feature, since its basically a boolean attribute
 will check the passed value for its truth state, setting the attribute value to 'on'
 when true, but NOT setting the attribute at all if its false.
@@ -951,6 +1027,100 @@ Returns:
         <dd id="age">32</dd>
       </dl>
     </section>
+
+=head2 select
+
+The C<select> tag for the purposes of filling its C<options> is
+treated as a type of list tag.
+
+    my $dom = Template::Lace::DOM->new(q[
+      <form>
+        <select name='cars'>
+          <option>Example</options>
+        </select>
+      </form>]);
+
+    $dom->select('cars', [
+      +{ value=>'honda', content=>'Honda' },
+      +{ value=>'ford', content=>'Ford', selected=>1 },
+      +{ value=>'gm', content=>'General Motors' },
+    ]);
+
+    print $dom;
+
+Returns:
+
+    <select name="cars">
+      <option value="honda">Honda</option>
+      <option selected="on" value="ford">Ford</option>
+      <option value="gm">General Motors</option>
+    </select>
+
+Please note that match 'id' is on the C<name> attribute of the C<select>
+tag, not of the C<id> attribute as it is on other list helper types.
+
+You can also populate option groups as in the following:
+
+    my $dom = Template::Lace::DOM->new(q[
+      <select name='jobs'>
+        <optgroup label='Example'>
+          <option>Example</option>
+        </optgroup>
+      </select>]);
+
+    $dom->select('jobs', [
+      +{
+        label=>'Easy',
+        options => [
+          +{ value=>'slacker', content=>'Slacker' },
+          +{ value=>'couch_potato', content=>'Couch Potato' },
+        ],
+      },
+      +{
+        label=>'Hard',
+        options => [
+          +{ value=>'digger', content=>'Digger' },
+          +{ value=>'brain', content=>'Brain Surgeon' },
+        ],
+      },
+    ]);
+
+    print $dom;
+
+Would return:
+
+    <select name="jobs">    
+      <optgroup label="Easy">
+        <option value="slacker">Slacker</option>
+        <option value="couch_potato">Couch Potato</option>
+      </optgroup>
+      <optgroup label="Hard">
+        <option value="digger">Digger</option>
+        <option value="brain">Brain Surgeon</option>
+      </optgroup>
+    </select>
+
+=head1 radio
+List helper for a radio input type.  Example
+
+    my $dom = Template::Lace::DOM->new("
+      <form>
+        <input type='radio' name='choose' />
+      </form>");
+
+    $dom->radio('choose',[
+      +{id=>'id1', value=>1},
+      +{id=>'id2', value=>2},
+      ]);
+
+    print $dom;
+
+Returns;
+
+    <form>
+      <input id="id1" name="choose" type="radio" value="1">
+      <input id="id2" name="choose" type="radio" value="2">
+    </form>
 
 =head1 GENERAL TAG HELPERS
 
