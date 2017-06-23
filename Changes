@@ -1,6 +1,6 @@
 The following logs changes for the CPAN distribution Template::Lace
 
-0.006   TBA
+0.006   22 June 2017
         - Fixed missing test dependencies
         - New helper methods on Template::Lace::DOM for working with forms
 

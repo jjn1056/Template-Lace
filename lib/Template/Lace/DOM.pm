@@ -57,9 +57,16 @@ sub smart_content {
   my ($self, $data) = @_;
   if($self->tag eq 'input') {
     if((ref($data)||'') eq 'HASH') {
+      if(exists($data->{selected})) {
+        $data->{selected} = 'on';
+      }
       $self->attr($data);
     } else {
-      $self->attr(value=>$data);
+      if(($self->attr('type')||'') eq 'checkbox') {
+        $self->boolean_attribute_helper('checked', $data);
+      } else {
+        $self->attr(value=>$data);
+      }
     }
   } elsif($self->tag eq 'option') {
     if((ref($data)||'') eq 'HASH') {
@@ -84,7 +91,7 @@ sub smart_content {
 }
 
 sub fill {
-  my ($self, $data, $is_loop) = @_;
+  my ($self, $data, $is_loop, $is_form) = @_;
   if(ref \$data eq 'SCALAR') {
     $self->smart_content($data);
   } elsif(ref $data eq 'CODE') {
@@ -97,12 +104,12 @@ sub fill {
       )
     {
       $self->at('li')
-        ->fill($data, $is_loop);
+        ->fill($data, $is_loop, $is_form);
     } elsif(($self->tag||'') eq 'select') {
       if(my $optgroup = $self->at('optgroup')) {
-        $optgroup->fill($data, $is_loop);
+        $optgroup->fill($data, $is_loop, $is_form);
       } elsif(my $option = $self->at('option')) {
-        $option->fill($data, $is_loop);
+        $option->fill($data, $is_loop, $is_form);
       } else {
         warn "Found 'select' without option or optgroup";
       }   
@@ -133,22 +140,37 @@ sub fill {
     } else {
       foreach my $match (keys %{$data}) {
         if(!$is_loop) {
-          if(my $dom = $self->at("#$match")) {
-            $dom->fill($data->{$match}, $is_loop);
+          my $dom;
+          if($dom = $self->at("#$match")) {
+            $is_form = 1 if $dom->tag eq 'form';
+            $dom->fill($data->{$match}, $is_loop, $is_form);
             next;
-          } elsif(my $dom = $self->at("*[data-lace-id='$match']")) {
-            $dom->fill($data->{$match}, $is_loop);
+          } elsif($dom = $self->at("*[data-lace-id='$match']")) {
+            $is_form = 1 if $dom->tag eq 'form';
+            $dom->fill($data->{$match}, $is_loop, $is_form);
             next;
           }
         }
         $self->find(".$match")->each(sub {
             my ($dom, $count) = @_;
-            $dom->fill($data->{$match}, $is_loop);
+            $is_form = 1 if $dom->tag eq 'form';
+            $dom->fill($data->{$match}, $is_loop, $is_form);
         });
-        $self->find("input[name='$match']")->each(sub {
-            my ($dom, $count) = @_;
-            $dom->fill($data->{$match}, $is_loop);
-        });
+        if($is_form) {
+          # Sorry, I'll come up with less suck when I can.
+          $self->find("input[name='$match']")->each(sub {
+              my ($dom, $count) = @_;
+              $dom->fill($data->{$match}, $is_loop, $is_form);
+          });
+          $self->find("select[name='$match']")->each(sub {
+              my ($dom, $count) = @_;
+              $dom->fill($data->{$match}, $is_loop, $is_form);
+          });
+          $self->find("textarea[name='$match']")->each(sub {
+              my ($dom, $count) = @_;
+              $dom->fill($data->{$match}, $is_loop, $is_form);
+          });
+        }
       }
     }
   } elsif(Scalar::Util::blessed $data) {
@@ -257,8 +279,11 @@ sub _do {
       $self->_do_attr($maybe_attr => $action);
     }
   } elsif(!ref $action) {
-    my $escaped = escape_html $action;
-    $self->content($escaped);
+    if(defined $action) {
+      $self->smart_content($action);
+    } else {
+      $self->remove;
+    }
   } else {
     $self->fill($action);
   }
@@ -312,6 +337,9 @@ sub class {
   if(ref($proto[0]) eq 'HASH') {
     my $classes = join ' ', grep { $proto[0]->{$_} } keys %{$proto[0]};
     return $self->attribute_helper('class', $classes);
+  } elsif(ref($proto[0]) eq 'ARRAY') {
+    my $classes = join ' ', @{$proto[0]};
+    return $self->attribute_helper('class', $classes);    
   } else {
     return $self->attribute_helper('class',@proto);
   }
@@ -608,9 +636,65 @@ Produces:
       </dl>
     </section>
 
+In addition we also match and fill form elements based on the C<name>
+attribute, even automatically unrolling arrayrefs of hashrefs correctly
+for C<select> and C<input[type='radio']>.  HOWEVER you must first match
+a form element (by id or class), for example:
+
+    my $dom = Template::Lace::DOM->new(q[
+      <section>
+        <form id='login'>
+          <input type='text' name='user' />
+          <input type='checkbox' name='toggle'/>
+          <input type='radio' name='choose' />
+          <select name='cars'>
+            <option value='value1'>Value</option>
+          </select>
+        </form>
+      </section>]);
+
+    $dom->at('html')
+      ->fill(+{
+        login => +{
+          user => 'Hi User',
+          toggle => 'on',
+          choose => [
+            +{id=>'id1', value=>1},
+            +{id=>'id2', value=>2, selected=>1},
+          ],
+          cars => [
+            +{ value=>'honda', content=>'Honda' },
+            +{ value=>'ford', content=>'Ford', selected=>1 },
+            +{ value=>'gm', content=>'General Motors' },
+          ],
+        },
+      });
+
+    print $dom;
+
+Would return:
+
+    <section>
+      <form id="login">
+        <input name="user" type="text" value="Hi User">
+        <input name="toggle" type="checkbox" value="on">
+        <input id="id1" name="choose" type="radio" value="1">
+        <input id="id2" name="choose" selected="on" type="radio" value="2"> 
+        <select name="cars">
+          <option value="honda">Honda</option>
+          <option selected="on" value="ford">Ford</option>
+          <option value="gm">General Motors</option>
+        </select>
+      </form>
+    </section>
+
+This is done because lookup by C<name> globally would impact performance 
+and return too many false positives.
+
 In general C<fill> will try to do the right thing, even coping with
-list tags such as C<ol> and <ul> correctly.  You maye find it more
-magical than you like.  Also using this introduces a required structural
+list tags such as C<ol>, C<ul> and input type tags (including C<select> and
+Radio input tags) correctly.  You maye find it more magical than you like.
+Also using this introduces a required structural
 binding between you Model class and the ids and classes of tags in your
 templates.  You might find this a great convention or fragile binding
 depending on your outlook.
@@ -794,6 +878,8 @@ values are true will be added.  For example:
 Returns:
 
     <html><div class="completed">aaa</div></html>
+
+If you instead use an arrayref, all the classes are just added.
 
 Useful to reduce some boilerplate.
 
@@ -1101,6 +1187,7 @@ Would return:
     </select>
 
 =head1 radio
+
 List helper for a radio input type.  Example
 
     my $dom = Template::Lace::DOM->new("
@@ -1110,7 +1197,7 @@ List helper for a radio input type.  Example
 
     $dom->radio('choose',[
       +{id=>'id1', value=>1},
-      +{id=>'id2', value=>2},
+      +{id=>'id2', value=>2, selected=>1},
       ]);
 
     print $dom;
@@ -1119,7 +1206,7 @@ Returns;
 
     <form>
       <input id="id1" name="choose" type="radio" value="1">
-      <input id="id2" name="choose" type="radio" value="2">
+      <input id="id2" name="choose" type="radio" value="2" selected="on">
     </form>
 
 =head1 GENERAL TAG HELPERS
