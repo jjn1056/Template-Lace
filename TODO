@@ -296,3 +296,50 @@ sub listclass {
 Placeholders
 <lace:person>Example</lace:person>
 
+
+<ui-checkbox label=(
+  <label>asdsd</label>
+  ) />
+
+
+---
+
+sub template {qq[
+  <ol>
+    <view-todo task=$.task />
+  </ol>
+]}
+
+sub process_dom {
+  my ($self, $dom) = @_;
+  $dom->component('view-todo')
+    ->first
+    ->repeat(sub {
+        my ($dom, $task) = @_;
+        $dom->process_component({task=>$task})
+      }, $self->tasks);
+}
+
+---
+
+sub template { '<ol></ol>' }
+
+sub process_dom {
+  my ($self, $dom) = @_;
+  $dom->append_child($self->ctx->view('Todo', task=>$_)
+    for @{$self->tasks};
+}
+
+----
+
+sub template {qq[
+  <ol>
+    <view-todo task=@.tasks />
+  </ol>
+]}
+
+sub process_dom {
+  my ($self, $dom) = @_;
+}
+
+

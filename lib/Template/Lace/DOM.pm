@@ -30,11 +30,13 @@ sub overlay {
   $self->replace($overlay_dom);
 }
 
-sub wrap_at_content {
-  my ($self, $new) = @_;
+sub wrap_with {
+  my ($self, $new, $target) = @_;
+  $target ||= '#content';
   $self->overlay(sub {
-    $new->at('#content')
-      ->replace($self);
+    $new->at($target)
+      ->content($self);
+    return $new;
   });
 }
 
@@ -190,6 +192,26 @@ sub fill {
   }
 }
 
+sub append_js_src_uniquely {
+  my ($self, $src, $attrs) = @_;
+  unless($self->at("script[src='$src']")) {
+    my $extra_attrs = join ' ', map { "$_='$attrs->{$_}'"  } keys %{$attrs||+{}};
+    $self->at('head')
+     ->append_content("<script type='text/javascript' src='$src' $extra_attrs></script>");
+  }
+  return $self;
+}
+
+sub append_css_href_uniquely {
+  my ($self, $href, $attrs) = @_;
+  unless($self->at("link[href='$href']")) {
+    my $extra_attrs = join ' ', map { "$_='$attrs->{$_}'"  } keys %{$attrs||+{}};
+    $self->at('head')
+     ->append_content("<link rel='stylesheet' href='$href' $extra_attrs />");
+  }
+  return $self;
+}
+
 sub append_style_uniquely {
   my $self = shift;
   my $style_dom = ref($_[0]) ? shift : ref($self)->new(shift);
@@ -262,7 +284,7 @@ sub _do_attr {
     || ($attr eq 'selected')
     || ($attr eq 'hidden')
   ) {
-    $self->attr($attr=>'on');
+    $self->attr($attr=>'on') if $val;
   } else {
     $self->attr($attr=>$val);
   }
@@ -515,6 +537,48 @@ Returns example:
 Useful to encapsulate a lot of the work when you want to apply a standard
 layout to a web page or section there of.
 
+=wrap_with 
+
+Makes it easier to wrap a current DOM with a 'layout' DOM.  Layout DOM
+replaces original.  Example
+
+    my $master = Template::Lace::DOM->new(qq[
+      <html>
+        <head>
+          <title></title>
+        </head>
+        <body id="content">
+        </body>
+      </html>
+    ]);
+
+    my $inner = Template::Lace::DOM->new(qq[
+      <h1>Hi</h1>
+      <p>This is a test of the emergency broadcasting networl</p>
+    ]);
+
+    $inner->wrap_with($master)
+      ->title('Wrapped');
+
+    print $inner;
+
+Returns:
+
+    <html>
+      <head>
+        <title>Wrapped</title>
+      </head>
+      <body id="content">
+        <h1>Hi</h1>
+        <p>This is a test of the emergency broadcasting networl</p>
+      </body>
+    </html>
+
+By default we match the wrapping DOM ($master in the given example) at the '#content' id
+for the template.  You can specify an alternative match point by passing it as a second
+argument to C<wrap_with>.
+
+
 =repeat
 
 Repeat a match as in a loop.  Example:
@@ -707,7 +771,7 @@ You might want to see L</LIST HELPERS> as well.
 
 =head2 append_link_uniquely
 
-Appends a style, script or link to the header 'uniquely' (that is we
+Appends a style, script or link tag to the header 'uniquely' (that is we
 don't append it if its already there).  The means used to determine
 uniqueness is first to check for an exising id attribute, and then
 in the case of scripts we look at the src tag, or the href tag for
@@ -719,6 +783,45 @@ future we may add some type of md5 checksum on content when that exists.
 Useful when you have a lot of components that need supporting scripts
 or styles and you want to make sure you only add the required supporting
 code once.
+
+Examples:
+
+    $dom->append_style_uniquely(qq[
+       <style id='four'>
+         body h4 { border: 1px }
+        </style>]);
+
+B<NOTE> This should be the entire tag element.
+
+=head2 append_css_href_uniquely
+
+=head2 append_js_src_uniquely
+
+Similar to the previous group of helpers L</append_link_uniquely>, etc. but
+instead of taking the entire tag this just wants a URI which is either the
+src attribute for a C<script> tag, or the href attribute of a C<link> tag.
+Useful for quickly adding common assets to your pages.  URIs are added uniquely
+so you don't have to worry about checking for the presence it first.
+
+    $dom->append_js_src_uniquely('/js/common1.js')
+      ->append_js_src_uniquely('/js/common2.js')
+      ->append_js_src_uniquely('/js/common2.js')
+
+Would render similar to:
+
+    <html>
+      <head>
+        <title>Wrapped</title>
+        <script src="/js/common1.js" type="text/javascript"></script>
+        <script src="/js/common2.js" type="text/javascript"></script>
+      </head>
+      <body id="content">
+        <h1>Hi</h1>
+        <p>This is a test of the emergency broadcasting networl</p>
+      </body>
+    </html>
+
+We append these to the last node inside the C<head> element content.
 
 =head2 do
 

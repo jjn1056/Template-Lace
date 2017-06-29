@@ -637,6 +637,41 @@ use Scalar::Util 'refaddr';
     '#list' => [1,2,3],
     '#toggle_errors' => undef,
   );
+
+  is $dom->at('input[name="toggle"]')->attr('checked'), 'on';
+  is $dom->at('select[name="tags"]')->find('option')->[0]->content, 1;
+  ok !$dom->at('#toggle_errors');
+}
+
+# wrap_with
+{
+  my $master = Template::Lace::DOM->new(qq[
+    <html>
+      <head>
+        <title></title>
+      </head>
+      <body id="content">
+      </body>
+    </html>
+  ]);
+
+  my $inner = Template::Lace::DOM->new(qq[
+    <h1>Hi</h1>
+    <p>This is a test of the emergency broadcasting networl</p>
+  ]);
+
+  $inner->wrap_with($master)
+    ->title('Wrapped');
+
+  $inner->append_js_src_uniquely('/js/common1.js');
+  $inner->append_js_src_uniquely('/js/common2.js');
+  $inner->append_js_src_uniquely('/js/common2.js');
+
+  is $inner->at('title')->content, 'Wrapped';
+  is $inner->at('h1')->content, 'Hi';
+  ok $inner->at('script[src="/js/common1.js"]');
+  ok $inner->at('script[src="/js/common2.js"]');
+  is scalar(@{$inner->find('script[src="/js/common2.js"]')}), 1;
 }
 
 done_testing;
