@@ -49,7 +49,6 @@ sub repeat {
     $cb->($cloned_dom, $_, $index);
     $cloned_dom;
   } @items;
-
   # Might be a faster way to do this...
   $self->replace(join '', @nodes);
   return $self;

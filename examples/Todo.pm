@@ -1,16 +1,20 @@
 package Todo;
 
 use Page;
+use Components::TodoList;
+use Components::Master;
 use Web::Simple;
 
 my @list = ('Walk Dog');
-my $factory = Page->create_factory(\@list);
+my $todo_list_factory = Components::TodoList->create_factory(\@list);
+my $master_factory = Components::Master->create_factory();
+my $page_factory = Page->create_factory($todo_list_factory, $master_factory);
 
 sub show_page {
   return [
     200,
     ['Content-type'=>'text/html'],
-    [ $factory->render ]
+    [ $page_factory->render ]
   ];
 }
 
