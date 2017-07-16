@@ -2,6 +2,7 @@ package Components::Master;
 
 use Moo;
 use Template::Lace::Factory;
+use Template::Lace::Utils 'mk_component';
 
 has 'content' => (is=>'ro', required=>1);
 
@@ -13,8 +14,8 @@ sub create_factory {
 
 sub process_dom {
   my ($self, $dom) = @_;
-  $dom->at('wrapped-content')
-    ->replace($self->content);
+  $dom->at('#content')
+   ->content($self->content);
 }
 
 sub template {q[
@@ -22,8 +23,8 @@ sub template {q[
     <head>
       <title>Todo List</title>
     </head>
-    <body>
-      <wrapped-content />
+    <body id='content'>
+      [Content goes here]
     </body>
   </html>
 ]}

@@ -1,4 +1,4 @@
-package Todo;
+package TodoListApp;
 
 use Page;
 use Components::TodoList;
