@@ -1,5 +1,9 @@
 The following logs changes for the CPAN distribution Template::Lace
 
+0.009   July 16, 2017
+        - improved the regexp for detecting components so that you can have componenets
+          with 'deep' namespacing "aaa-bbb-ccc".
+
 0.008   July 16 2017
         - BREAKING CHANGE: calling ->repeat on Template::Lace::DOM now requires
           that you return the new DOM object, rather than changing the existing
