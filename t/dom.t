@@ -2,6 +2,48 @@ use Test::Most;
 use Template::Lace::DOM;
 use Scalar::Util 'refaddr';
 
+{
+  # nested ol
+  ok my $dom = Template::Lace::DOM->new(q[
+    <section>
+      <ul id='outer'>
+        <li>
+          <ul class='inner'>
+            <li>
+              Hello 
+              <span class='name'>NAME</span>
+              , you are 
+              <span data-lace-id='age'>AGE</span>
+            </li>
+          </ul>
+      </ul>
+    </section>
+  ]);
+
+  $dom->fill({
+    'outer' => [
+      'bbbb',
+      {
+        'inner' => [
+          sub { shift->content('stuff') },
+          { name=>'john', age=>42 },
+        ],
+      },
+      sub {
+        my $dom = shift;
+        $dom->content('aaa');
+      },
+    ]
+  });
+  
+warn $dom;
+
+  is $dom->find('#outer li')->[0]->content, 'bbbb';
+  is $dom->find('.inner li')->[0]->content, 'stuff';
+  is $dom->find('.inner li')->[1]->at('.name')->[0]->content, 'john';
+  is $dom->find('.inner li')->[1]->find('span')->[1]->content, 42;
+  is $dom->find('#outer li')->[4]->content, 'aaa';
+}
 
 # General Helpers
 {

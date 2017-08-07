@@ -95,12 +95,14 @@ sub smart_content {
 
 sub fill {
   my ($self, $data, $is_loop, $is_form) = @_;
+  $is_form = 1 if ($self->tag||'') eq 'form';
   if(ref \$data eq 'SCALAR') {
     $self->smart_content($data);
   } elsif(ref $data eq 'CODE') {
-    local $_ = $self;
-    $data->($self);
+    $data->($self, $data);
   } elsif(ref $data eq 'ARRAY') {
+    ## Probably should handle the other spcial
+    ## tags helpers like DL etc.
     if(
         (($self->tag||'') eq 'ol')
         || (($self->tag||'') eq 'ul')
@@ -155,11 +157,12 @@ sub fill {
             next;
           }
         }
-        $self->find(".$match")->each(sub {
+        $self->find(".$match, *[data-lace-id='$match']")->each(sub {
             my ($dom, $count) = @_;
             $is_form = 1 if $dom->tag eq 'form';
             $dom->fill($data->{$match}, $is_loop, $is_form);
         });
+
         if($is_form) {
           # Sorry, I'll come up with less suck when I can.
           $self->find("input[name='$match']")->each(sub {
