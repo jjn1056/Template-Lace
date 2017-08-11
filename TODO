@@ -137,6 +137,20 @@ sub process_dom {
   );
 }
 
+  my ($self, $dom) = @_;
+  $dom->bind('links',
+    add_task => { action=>$self->uri('add') },
+    clear_completed => { action=>$self->uri('clear_completed') },
+    show_all => $self->build_summary_url('all'),
+    show_active => $self->build_summary_url('active'),
+    show_completed => $self->build_summary_url('completed'),
+  )->bind('todos',
+    active_count => $self->active_task_count,
+    set => sub { $self->list_todos($_) },
+  );
+}
+
+
 sub build_summary_url {
   my ($self, $set) = @_;
   return +{
@@ -290,20 +304,6 @@ sub process_dom {
 <ul lace-method="$.display_links"
     class="nav navbar-nav navbar-right">
   <li><a lace='link_title'
-      lace@href='href'
-      lace@class='is_active'>
-    Link
-  </a></li>
-</ul>
-
-sub display_links {
-  my ($self, $dom) = @_;
-  $dom->repeat(sub {
-    my ($dom, $link, $index) = @_;
-    $dom->data
-      ->link_title($link->title)
-      ->href($link->uri)
-      ->class({'active', $self->active_link eq $link->{id}});
     return $dom;
   }, $self->links);
 }
@@ -372,9 +372,7 @@ sub render_links {
   my ($self, $dom, %args) = @_;
   $dom->by
     ->title('Hello World')
-    ->repeat::links($self->curry::render_link, $self->links)
-    ->fill::*
-    ->???;
+    ->repeat::links($self->curry::render_link, $self->links);
 }
 
 sub render_link {
@@ -383,3 +381,21 @@ sub render_link {
     ->description($link->description)
     ->link($link->url($arg{linkbase}));
 }
+
+sub render_links {
+  my ($self, $dom, %args) = @_;
+  $dom->fill({
+    title => 'Hello World',
+    links => sub { shift->repeat(self->curry::render_link($arg{linkbase}), $self->links) },
+  });
+}
+
+sub render_link {
+  my ($self, $li, $base, $link) = @_;
+  $li->fill({
+    description => $link->description,
+    link => sub { shift->attr(href=> $link->url($base)),
+  });
+}
+
+

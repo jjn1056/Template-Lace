@@ -2,6 +2,29 @@ use Test::Most;
 use Template::Lace::DOM;
 use Scalar::Util 'refaddr';
 
+{ #options, one optgroup
+  ok my $dom = Template::Lace::DOM->new(q[
+    <form>
+      <select name='states'>
+        <optgroup id='usa_states' label='USA States'>
+          <option class="state">Example</option>
+        </optgroup>       
+      </select>
+    </form>
+  ]);
+
+  $dom->optgroup('#usa_states')->fill({
+      state => [
+        +{ value=>'ny', content=>'New York' },
+        +{ value=>'tx', content=>'Texas' },
+      ]
+    });
+
+  is $dom->find('option')->size, 2;
+}
+
+# optgroup with ids
+
 {
   # nested ol
   ok my $dom = Template::Lace::DOM->new(q[
@@ -23,10 +46,10 @@ use Scalar::Util 'refaddr';
   $dom->fill({
     'outer' => [
       'bbbb',
-      {
+      +{
         'inner' => [
           sub { shift->content('stuff') },
-          { name=>'john', age=>42 },
+          +{ name=>'john', age=>42 },
         ],
       },
       sub {
@@ -36,8 +59,6 @@ use Scalar::Util 'refaddr';
     ]
   });
   
-warn $dom;
-
   is $dom->find('#outer li')->[0]->content, 'bbbb';
   is $dom->find('.inner li')->[0]->content, 'stuff';
   is $dom->find('.inner li')->[1]->at('.name')->[0]->content, 'john';
