@@ -373,6 +373,15 @@ sub render_links {
   $dom->by
     ->title('Hello World')
     ->repeat::links($self->curry::render_link, $self->links);
+
+    ->links(sub { $_->repeat($self->curry::render_link, $self->links) })
+
+  $dom->for('#links', sub {
+    $_->repeat($self->curry::render_link, $self->links);
+  })
+
+  $dom->repeat::for('#links', $self->curry::render_link, $self->links)
+
 }
 
 sub render_link {
@@ -399,3 +408,14 @@ sub render_link {
 }
 
 
+
+      $dom->at('#links')->repeat(sub {
+        my ($cloned_li$, $link) = @_;
+        $cloned_li->by
+          ->description($link->description)
+          ->link($link->url($arg{linkbase}));
+        return $cloned_li;
+      }, $self->links);
+
+
+      $dom->repeat_for('#links', sub { ... }, $self->links); 

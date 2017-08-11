@@ -43,8 +43,7 @@ use Scalar::Util 'refaddr';
     </section>
   ]);
 
-  $dom->fill({
-    'outer' => [
+  $dom->for('#outer', [
       'bbbb',
       +{
         'inner' => [
@@ -57,7 +56,7 @@ use Scalar::Util 'refaddr';
         $dom->content('aaa');
       },
     ]
-  });
+  );
   
   is $dom->find('#outer li')->[0]->content, 'bbbb';
   is $dom->find('.inner li')->[0]->content, 'stuff';
@@ -628,7 +627,7 @@ use Scalar::Util 'refaddr';
 
   {
     my $localdom = $dom->clone;
-    $localdom->at('html')->fill(+{
+    $localdom->for('html', +{
         login => +{
           user => 'Hi User',
           uid => 111,

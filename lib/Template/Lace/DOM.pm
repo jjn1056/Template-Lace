@@ -202,6 +202,16 @@ sub fill {
   }
 }
 
+sub for {
+  my ($dom, $match, @args) = @_;
+  $dom->find($match)
+    ->each(sub {
+      my ($dom, $idx) = @_;
+      $dom->fill(@args);
+    });
+  return $dom;
+}
+
 sub append_js_src_uniquely {
   my ($self, $src, $attrs) = @_;
   unless($self->at("script[src='$src']")) {
@@ -801,6 +811,19 @@ templates.  You might find this a great convention or fragile binding
 depending on your outlook.
 
 You might want to see L</LIST HELPERS> as well.
+
+=head2 for
+
+Syntax sugar that combines 'find' and 'fill'.  So:
+
+    $dom->find($match)
+      ->each(sub $_->fill($spec));
+
+Can be written as:
+
+    $dom->for($match, $spec);
+
+Might save a bit of space.
 
 =head2 append_style_uniquely
 
