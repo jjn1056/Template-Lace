@@ -776,4 +776,29 @@ use Scalar::Util 'refaddr';
   is $dom->at('#arrayref')->find('dd.value')->[3]->[0], 'jjn1056@yahoo.com';
 }
 
+{
+  my $dom = Template::Lace::DOM->new(qq[<span class='existing'></span>]);
+
+  $dom->at('span')
+    ->add_class('aaa')
+    ->add_class(['bbb','ccc'])
+    ->add_class({
+        ddd => 1,
+        eee => 0,
+      });
+
+  is $dom->at('span')->attr('class'), 'existing aaa bbb ccc ddd';
+}
+
+{
+  my $dom = Template::Lace::DOM->new(qq[<span>Hello [% name%]! It is a [% weather %] day!</span>]);
+
+  $dom->at('span')
+   ->tt(name=>'John',
+     weather=>'great');
+
+  is $dom, '<span>Hello John! It is a great day!</span>';
+}
+
+
 done_testing;
