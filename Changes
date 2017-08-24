@@ -1,5 +1,8 @@
 The following logs changes for the CPAN distribution Template::Lace
 
+0.014   August 24, 2017
+        - Another tweak to the tt helper.
+
 0.013   August 24, 2017
         - Fixed incorrect version number of dependency that caused install to
           fall.

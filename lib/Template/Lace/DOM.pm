@@ -14,10 +14,7 @@ my $tt = Template::Tiny->new;
 sub tt {
   my ($dom, @proto) = @_;
   my %vars = ref($proto[0]) eq 'HASH' ? %{$proto[0]} : @proto;
-  my $output = '';
-  my $input = $dom->content;
-  $tt->process( \$input, \%vars, \$output );
-  $dom->content($output);
+  $tt->process( \$dom->content, \%vars, \$dom->tree->[-1][1] ); # only works in some cases
   return $dom;
 }
 

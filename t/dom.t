@@ -800,5 +800,26 @@ use Scalar::Util 'refaddr';
   is $dom, '<span>Hello John! It is a great day!</span>';
 }
 
+{
+  my $dom = Template::Lace::DOM->new(q[
+  <script>
+    $('foo[name="[% name1 %]"]').src('[% src1 %]');
+    $('foo[name="[% name2 %]"]').src('[% src2 %]');
+  </script>
+  ]);
+
+  $dom->at('script')
+   ->tt(name1=>'bar1',
+     src1=>'/ajax1',
+     name2=>'/ajax2',
+     src2=>'/ajax2');
+
+  my $string = q[
+    $('foo[name="bar1"]').src('/ajax1');
+    $('foo[name="/ajax2"]').src('/ajax2');
+  ];
+
+  is $dom->at('script')->content, $string;
+}
 
 done_testing;
