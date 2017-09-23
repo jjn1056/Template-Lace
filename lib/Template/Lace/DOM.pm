@@ -6,10 +6,20 @@ use base 'Mojo::DOM58';
 use Storable ();
 use Scalar::Util;
 use Template::Tiny;
+use UUID::Tiny;
+
+$Storable::Deparse =1;
+$Storable::Eval =1;
 
 # General Helpers
 
 my $tt = Template::Tiny->new;
+
+my $generate_component_uuid = sub {
+  my $uuid = UUID::Tiny::create_uuid_as_string;
+  $uuid=~s/\-//g;
+  return $uuid;
+};
 
 sub tt {
   my ($dom, @proto) = @_;
@@ -50,19 +60,53 @@ sub wrap_with {
   });
 }
 
+sub components {
+  my ($self) = @_;
+  return $self->find("*[uuid]");
+}
+
+sub map_component_tree {
+  my ($self, $cb, $post_cb) = @_;
+  $self->child_nodes->each(sub {
+    my $dom = shift;
+    if($dom->attr('uuid')) {
+      $cb->($dom, $self) if $cb;
+    }
+    $dom->map_component_tree($cb, $post_cb);
+    #$cb->($dom, $self) if $dom->attr('uuid');
+    $post_cb->($dom, $self) if $dom->attr('uuid') and $post_cb;
+  });
+  return $self;
+}
+
+sub component_info {
+  my ($self) = @_;
+  return $self->attr("component_info");
+}
+
 sub repeat {
   my ($self, $cb, @items) = @_;
   my $index = 0;
   my @nodes = map {
+    my $context = $_;
     my $cloned_dom = $self->clone;
+    $cloned_dom->components->each(sub { 
+      $_->attr('uuid'=>$self->$generate_component_uuid);
+      $_->attr('component_info')->{context} = $context;
+    });
     $index++;
-    my $returned_dom = $cb->($cloned_dom, $_, $index);
+    my $returned_dom = $cb->($cloned_dom, $context, $index);
     $returned_dom;
   } @items;
 
+  #$self->parent->content('');
+  $self->_replace(
+    Mojo::DOM58::_parent($self->tree), 
+    $self->tree, 
+    [map { $_->tree } @nodes],
+  );
 
-  # Might be a faster way to do this...
-  $self->replace(join '', @nodes);
+  #$self->replace(join '', @nodes);
   return $self;
 }
 
@@ -497,12 +541,47 @@ sub dl {
   } elsif(ref($proto) eq 'ARRAY') {
     my $dl = $self->at("dl$id");
     my $collection = $dl->find("dt,dd");
-    my $new = ref($self)
-      ->new($collection->join)
-      ->fill($proto);
-    $dl->content($new);
+
+    my @nodes = ();
+    foreach my $item(@$proto) {
+      $collection->each(sub {
+        my ($dom, $idx) = @_;
+        my $clone = Storable::dclone($dom->parent);
+        $clone->fill($item);
+        $clone->find($dom->tag)->each(sub {push @nodes, $_->tree});
+      });
+    }
+
+    $dl->content('');
+
+    splice
+     @{$dl->tree},
+     Mojo::DOM58::_start($dl->tree),
+     0,
+     @{Mojo::DOM58::_link($dl->tree,\@nodes)};
   }
+
   return $self;
+}
+
+sub insert_collection {
+  my ($self, $collection) = @_;
+  my $string = $collection->join("\n");
+
+
+
+  return $self;
+  
+  my @nodes = map { $_->tree } $collection->each;
+  $self->content('');
+
+  splice
+   @{$self->tree},
+   Mojo::DOM58::_start($self->tree),
+   0,
+   @{Mojo::DOM58::_link($self->tree,\@nodes)};
+
+   return $self;
 }
 
 sub select {

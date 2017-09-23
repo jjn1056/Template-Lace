@@ -32,6 +32,8 @@ sub get_handlers {
   foreach my $key(@ordered_component_keys) {
     my $handler = $class->get_handler($args, %{$component_info->{$key}});
     $handlers{$key} = $handler;
+    $handlers{$component_info->{$key}{prefix}}{$component_info->{$key}{name}} = $handler;
+
   }
   return %handlers;
 }
@@ -50,15 +52,15 @@ sub get_handler {
 
   # TODO should this be in the renderer?
   if($handler->model_class->can('on_component_add')) {
-  my %attrs = ( 
-    $handler->renderer_class
-      ->process_attrs(
-          $handler->model_class,
-          $args->{dom}, # DOM of containing template
-          %{$component_info{attrs}}),
-    content=>$args->{dom}->content,
+    my %attrs = ( 
+      $handler->renderer_class
+        ->process_attrs(
+            $handler->model_class,
+            $args->{dom}, # DOM of containing template
+            %{$component_info{attrs}}),
+      content=>$args->{dom}->content,
     #  model=>$self->model
-  );
+    );
     my $renderer = $handler->create(%attrs);
     $renderer->model->on_component_add($renderer->dom, $args->{dom});
 
@@ -89,12 +91,22 @@ sub find_component {
         $child_dom->attr({'uuid',$uuid});
         $components{$uuid} = +{
           order => (scalar(keys %components)),
+          context => undef,
+          container => $components{$current_container_id} ||'',
           key => $uuid,
           $class->setup_component_info($prefix,
             $current_container_id,
             $component_name,
             $child_dom),
         };
+
+        $child_dom->attr({component_info=>$components{$uuid}});
+
+        if($current_container_id) {
+          if(my $parent = $child_dom->root->at("*[uuid='$current_container_id']")) {
+            push @{$parent->attr('component_info')->{children_ids}}, $parent;
+          }
+        }
 
         push @{$components{$current_container_id}{children_ids}}, $uuid
           if $current_container_id;
@@ -180,10 +192,11 @@ sub setup_arrayrefdata_hander {
     my $v = $_; $v =~s/^\$\.//;
     $class->attr_value_handler_factory($v);
   } @$ref;
-  return sub {
+  return q^ sub {
     my ($ctx, $dom) = @_;
+    my @array = (^ . join(', ', map { "q^$_^" } @array) . q^);
     return [ map { (ref($_)||'') eq 'CODE' ? $_->($ctx,$dom) : $_ } @array ];
-  };
+  } ^;
 }
 
 
@@ -194,11 +207,12 @@ sub setup_hashrefdata_hander {
     my $v = $ref->{$_};
     $_ => $class->attr_value_handler_factory($v);
   } keys %$ref;
-  return sub {
+  return q^ sub {
     my ($ctx, $dom) = @_;
+    my %hash = (^ .join(',', map { "'$_' => '$hash{$_}'" } keys %hash ). q^);
     my %unrolled = map { $_ => $hash{$_}->($ctx,$dom) } keys(%hash);
     return \%unrolled;
-  };
+  } ^;
 }
 
 sub setup_css_match_handler {
@@ -207,9 +221,9 @@ sub setup_css_match_handler {
     return sub { my ($view, $dom) = @_; $dom->find($css) };
   } else {
     if(my $content = $css=~s/\:content$//) { # hack to CSS to allow match on content
-      return sub { my ($view, $dom) = @_; $dom->at($css)->content };
+      return eval q| sub { my ($view, $dom) = @_; $dom->at(| .$css. q|)->content }|;
     } else {
-      return sub { my ($view, $dom) = @_; $dom->at($css) };
+      return eval q| sub { my ($view, $dom) = @_; $dom->at(| .$css. q|) } |;
     }
   }
 }
@@ -217,19 +231,23 @@ sub setup_css_match_handler {
 sub setup_data_path_hander {
   my ($class, $path) = @_;
   my @parts = $path=~m/\./ ? (split('\.', $path)) : ($path);
-  return sub {
-    my ($ctx, $dom) = @_;
-    foreach my $part(@parts) {
-      if(Scalar::Util::blessed $ctx) {
-        $ctx = $ctx->$part;
-      } elsif(ref($ctx) eq 'HASH') {
-        $ctx = $ctx->{$part};
-      } else {
-        die "No '$part' in path '$path' for this view";
+  my $parts_string = join ', ', map { "q|$_|" } @parts;
+  # This maddness because Storable won't clone a sub with closures in the expected way
+  return eval q|
+    sub {
+      my ($ctx, $dom) = @_;
+      foreach my $part(|.$parts_string.q|) {
+        if(Scalar::Util::blessed $ctx) {
+          $ctx = $ctx->$part;
+        } elsif(ref($ctx) eq 'HASH') {
+          $ctx = $ctx->{$part};
+        } else {
+          die "No '$part' in path '|.$path.q|' for this view";
+        }
       }
-    }
-    return $ctx;
-  };
+      return $ctx;
+    };
+  |;
 }
 
 sub get_component_ordered_keys {

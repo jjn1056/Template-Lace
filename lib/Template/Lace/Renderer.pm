@@ -34,34 +34,41 @@ sub render {
 sub get_processed_dom {
   my $self = shift;
   my $dom = $self->dom;
-  $self->process_components($dom);
   $self->model->process_dom($dom)
     if $self->model->can('process_dom');
+    $self->process_components($dom);
   return $dom;
 } 
 
 sub process_components {
   my ($self, $dom) = @_;
-  my @ordered_keys = @{$self->components->ordered_component_keys};
   my %constructed_components = ();
-  foreach my $id(@ordered_keys) {
-    next unless $self->components->handlers->{$id}; # might skip if 'static' handler
-    next unless my $local_dom = $dom->at("[uuid='$id']");
-    my $constructed_component = $self->process_component(
-      $local_dom, 
-      $self->components->handlers->{$id},
-      \%constructed_components,
-      %{$self->components->component_info->{$id}});
-    $constructed_components{$id} = $constructed_component
-      if $constructed_component;
-  }
-  # Now post process..  We do this so that parents can have access to
-  # children for transforming dom.
-  foreach my $id(@ordered_keys) {
-    next unless $constructed_components{$id};
-    my $processed_component = $constructed_components{$id}->get_processed_dom;
-
-#=head1 comment
+  $dom->map_component_tree(
+    # undef,
+    sub {
+      my $component_dom = shift;
+      my $component_info = $component_dom->component_info;
+      my $id = $component_dom->attr('uuid');
+      my $constructed_component = $self->process_component(
+        $component_dom, 
+        $self->components->handlers->{$component_info->{prefix}}{$component_info->{name}},
+        \%constructed_components,
+        %{$component_info});
+      $constructed_components{$id} = $constructed_component
+        if $constructed_component;
+    },
+  );
+  $dom->map_component_tree(
+    # undef,
+    sub {
+      my $component_dom = shift;
+      my $id = $component_dom->attr('uuid');
+      my $component = $constructed_components{$id};
+      my $processed_component = $component->get_processed_dom;
+      $component_dom->replace("$processed_component");
+    },
+  );
+=head1 comment
 
     # Move all the scripts, styles and links to the head area
     # TODO this probably doesn't work if the stuff is in a component
@@ -83,10 +90,8 @@ sub process_components {
         $_->remove;
     }); #id or src
 
-#=cut
-
-    $dom->at("[uuid='$id']")->replace($processed_component);
-  }
+=cut
+    
 }
 
 sub prepare_component_attrs {
@@ -100,13 +105,20 @@ sub prepare_component_attrs {
 
 sub process_component {
   my ($self, $dom, $component, $constructed_components, %component_info) = @_;
-  my %attrs = $self->prepare_component_attrs($dom, $self->model, %component_info);
+  my $context = $dom->component_info->{context} || $self->model;
+  my %attrs = $self->prepare_component_attrs($dom, $context, %component_info);
   if(my $container_id = $component_info{current_container_id}) {
     # Its possible if the compoent was a 'on_component_add' type that
     # its been removed from the DOM and a Child might still have it as
     # a container by mistake.  Possible a TODO to have a better idea.
-    $attrs{container} = $constructed_components->{$container_id}->model
-      if $constructed_components->{$container_id};
+    #
+    use Devel::Dwarn;
+    Dwarn $dom->component_info->{container}{key} if $dom->component_info->{container};
+      Dwarn $constructed_components if $dom->component_info->{container};
+
+
+    $attrs{container} = $dom->component_info->{container}->model
+      if $dom->component_info->{container};
   }
 
   if(Scalar::Util::blessed $component) {
@@ -120,6 +132,7 @@ sub process_component {
           $attrs{container}->can('add_child');
       }
     } else {
+      warn "no container";
       $constructed_component = $component->create(%attrs);
     }
     return $constructed_component;

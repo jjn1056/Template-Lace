@@ -16,8 +16,11 @@ use_ok 'Template::Lace::Factory';
     $dom->body(sub { $_->append_content('<section id="ff">fffffff</section>') });
   }
 
-  sub on_component_add {
+  sub process_dom {
     my ($self, $dom) = @_;
+      use Devel::Dwarn;
+  Dwarn $self->body;
+
     $dom->title($self->title)
       ->body(sub {
         $_->at('h1')->append($self->body);
@@ -282,7 +285,6 @@ is $dom->at('a')->content, 'See More';
   Test::Most::is $dom->at('#name')->content, 'John';
   Test::Most::is $dom->at('#age')->content, '42';
 }
-
 
 done_testing;
 

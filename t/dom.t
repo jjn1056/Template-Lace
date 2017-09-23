@@ -2,6 +2,28 @@ use Test::Most;
 use Template::Lace::DOM;
 use Scalar::Util 'refaddr';
 
+  #repeat
+  {
+    my $dom = Template::Lace::DOM->new("<ul><li>ITEMS</li></ul>");
+    my @items = (qw/aaa bbb ccc/);
+
+    $dom->at('li')
+      ->repeat(sub {
+          my ($li, $item, $index) = @_;
+          $li->content($item);
+          return $li;
+      }, @items);
+
+    warn $dom;
+
+    is $dom->find('li')->[0]->content, 'aaa';
+    is $dom->find('li')->[1]->content, 'bbb';
+    is $dom->find('li')->[2]->content, 'ccc';
+    is @{$dom->find('li')}, 3;     
+  }
+
+
+
 { #options, one optgroup
   ok my $dom = Template::Lace::DOM->new(q[
     <form>
@@ -746,10 +768,7 @@ use Scalar::Util 'refaddr';
       <dt>Age</dt>
       <dd id='age'></dd>
     </dl>
-    <dl id='arrayref'>
-      <dt class='term'></dt>
-      <dd class='value'></dd>
-    </dl>
+    <dl id='arrayref'><dt class='term'>a</dt><dd class='value'>b</dd></dl>
   ]);
 
   $dom->dl('#hashref', +{
@@ -759,8 +778,8 @@ use Scalar::Util 'refaddr';
       +{ term=>'Name', value=> 'John'},
       +{ term=>'Age', value=> 42 },
       +{ term=>'email', value=> [
-          'jjn1056@gmail.com',
-          'jjn1056@yahoo.com']},
+         'jjn1056@gmail.com',
+         'jjn1056@yahoo.com']},
   ]);
 
   is @{$dom->find('#hashref dd')}, 2;
